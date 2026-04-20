@@ -1,0 +1,356 @@
+"use client";
+
+import { useCallback, useEffect, useState, useRef } from "react";
+import {
+  Plus,
+  Upload,
+  Trash2,
+  Edit2,
+  Save,
+  X,
+  Search,
+  BookOpen,
+  Globe,
+  Loader2,
+} from "lucide-react";
+
+interface KnowledgeEntry {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  source: string;
+  usage_count: number;
+  enabled: boolean;
+  created_at: string;
+}
+
+function getCurrentSiteId() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("current_site_id") || "";
+}
+
+export default function KnowledgePage() {
+  const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
+  const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [newEntry, setNewEntry] = useState({ question: "", answer: "", category: "general" });
+  const [editEntry, setEditEntry] = useState({ question: "", answer: "", category: "" });
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [showUrlImport, setShowUrlImport] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [urlImporting, setUrlImporting] = useState(false);
+
+  const fetchEntries = useCallback(async () => {
+    const res = await fetch(`/api/knowledge?site_id=${getCurrentSiteId()}`);
+    if (res.ok) {
+      const data = await res.json();
+      setEntries(data.entries || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
+
+  async function addEntry() {
+    if (!newEntry.question || !newEntry.answer) return;
+    const res = await fetch("/api/knowledge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ site_id: getCurrentSiteId(), entry: newEntry }),
+    });
+    if (res.ok) {
+      setShowAdd(false);
+      setNewEntry({ question: "", answer: "", category: "general" });
+      fetchEntries();
+    }
+  }
+
+  async function saveEdit(id: string) {
+    await fetch("/api/knowledge", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...editEntry }),
+    });
+    setEditId(null);
+    fetchEntries();
+  }
+
+  async function deleteEntry(id: string) {
+    if (!confirm("Delete this entry?")) return;
+    await fetch(`/api/knowledge?id=${id}`, { method: "DELETE" });
+    fetchEntries();
+  }
+
+  async function handleCSVUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+
+    const text = await file.text();
+    const lines = text.split("\n").filter((l) => l.trim());
+    const csvEntries: { question: string; answer: string; category?: string }[] = [];
+
+    // Skip header
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(",").map((p) => p.trim().replace(/^"|"$/g, ""));
+      if (parts.length >= 2) {
+        csvEntries.push({
+          question: parts[0],
+          answer: parts[1],
+          category: parts[2] || "general",
+        });
+      }
+    }
+
+    if (csvEntries.length > 0) {
+      await fetch("/api/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_id: getCurrentSiteId(), entries: csvEntries }),
+      });
+      fetchEntries();
+    }
+    setImporting(false);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  const filtered = entries.filter(
+    (e) =>
+      e.question.toLowerCase().includes(search.toLowerCase()) ||
+      e.answer.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Knowledge Base</h2>
+          <p className="text-muted-foreground mt-1">
+            {entries.length} entries · Teach your AI how to answer
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            {importing ? "Importing..." : "Import CSV"}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".csv"
+            onChange={handleCSVUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => setShowUrlImport(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
+          >
+            <Globe className="w-4 h-4" />
+            Import URL
+          </button>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Entry
+          </button>
+        </div>
+      </div>
+
+      {/* URL Import */}
+      {showUrlImport && (
+        <div className="bg-card border border-primary/30 rounded-xl p-6 mb-6">
+          <h3 className="font-semibold text-foreground mb-2">Import from URL</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Paste a link to your docs (Google Docs, Feishu, Notion, or any webpage). AI will extract Q&A pairs automatically.
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://docs.google.com/document/d/... or any URL"
+              className="flex-1 bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <button
+              onClick={async () => {
+                if (!importUrl.trim()) return;
+                setUrlImporting(true);
+                try {
+                  const res = await fetch("/api/knowledge/import-url", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ site_id: getCurrentSiteId(), url: importUrl }),
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    alert(`Imported ${data.imported} Q&A entries from the URL!`);
+                    setImportUrl("");
+                    setShowUrlImport(false);
+                    fetchEntries();
+                  } else {
+                    alert(data.error || "Failed to import");
+                  }
+                } catch {
+                  alert("Failed to import from URL");
+                }
+                setUrlImporting(false);
+              }}
+              disabled={urlImporting || !importUrl.trim()}
+              className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {urlImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+              {urlImporting ? "Extracting..." : "Import"}
+            </button>
+          </div>
+          <div className="flex justify-end mt-3">
+            <button onClick={() => setShowUrlImport(false)} className="text-sm text-muted-foreground hover:text-foreground">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search knowledge base..."
+          className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      {/* Add New Entry Form */}
+      {showAdd && (
+        <div className="bg-card border border-primary/30 rounded-xl p-6 mb-6">
+          <h3 className="font-semibold text-foreground mb-4">New Entry</h3>
+          <div className="space-y-3">
+            <input
+              value={newEntry.question}
+              onChange={(e) => setNewEntry((p) => ({ ...p, question: e.target.value }))}
+              placeholder="Question"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <textarea
+              value={newEntry.answer}
+              onChange={(e) => setNewEntry((p) => ({ ...p, answer: e.target.value }))}
+              placeholder="Answer"
+              rows={3}
+              className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
+            <input
+              value={newEntry.category}
+              onChange={(e) => setNewEntry((p) => ({ ...p, category: e.target.value }))}
+              placeholder="Category (e.g. billing, technical)"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowAdd(false)}
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addEntry}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Entries List */}
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <div className="bg-card border border-border rounded-xl p-12 text-center">
+            <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
+            <p className="text-muted-foreground">
+              {entries.length === 0
+                ? "No knowledge entries yet. Add your first one or import a CSV."
+                : "No entries match your search."}
+            </p>
+          </div>
+        ) : (
+          filtered.map((entry) => (
+            <div
+              key={entry.id}
+              className="bg-card border border-border rounded-xl p-5"
+            >
+              {editId === entry.id ? (
+                <div className="space-y-3">
+                  <input
+                    value={editEntry.question}
+                    onChange={(e) => setEditEntry((p) => ({ ...p, question: e.target.value }))}
+                    className="w-full bg-muted border border-border rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <textarea
+                    value={editEntry.answer}
+                    onChange={(e) => setEditEntry((p) => ({ ...p, answer: e.target.value }))}
+                    rows={3}
+                    className="w-full bg-muted border border-border rounded-lg px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => setEditId(null)} className="p-2 text-muted-foreground hover:text-foreground">
+                      <X className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => saveEdit(entry.id)} className="p-2 text-success hover:text-success/80">
+                      <Save className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground text-sm">{entry.question}</p>
+                      <p className="text-muted-foreground text-sm mt-1">{entry.answer}</p>
+                      <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
+                        <span className="px-2 py-0.5 bg-muted rounded-md capitalize">
+                          {entry.category}
+                        </span>
+                        <span className="px-2 py-0.5 bg-muted rounded-md">
+                          {entry.source === "csv_import" ? "CSV" : entry.source === "auto_learned" ? "Learned" : "Manual"}
+                        </span>
+                        <span>Used {entry.usage_count}x</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 ml-4">
+                      <button
+                        onClick={() => {
+                          setEditId(entry.id);
+                          setEditEntry({ question: entry.question, answer: entry.answer, category: entry.category });
+                        }}
+                        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteEntry(entry.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
