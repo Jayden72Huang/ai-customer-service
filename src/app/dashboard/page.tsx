@@ -323,33 +323,9 @@ function DashboardContent() {
           </div>
         )}
 
-        {/* Step 4: Embed */}
+        {/* Step 4: Install Guide */}
         {setupStep === "embed" && activeSite && (
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mx-auto">
-              <Check className="w-6 h-6 text-success" />
-            </div>
-            <h3 className="font-semibold text-foreground text-center">You&apos;re all set!</h3>
-            <p className="text-sm text-muted-foreground text-center">
-              Add this code to your website to enable AI customer service.
-            </p>
-            <div className="relative">
-              <pre className="bg-background border border-border rounded-lg p-4 text-xs text-foreground overflow-x-auto font-mono">
-{`<script
-  src="${activeSite.domain ? `https://${activeSite.domain.replace(/^https?:\/\//, "")}` : process.env.NEXT_PUBLIC_APP_URL || ""}/widget.js"
-  data-api-key="${activeSite.api_key}"
-></script>`}
-              </pre>
-              <button onClick={copyEmbed}
-                className="absolute top-2 right-2 p-2 bg-muted rounded-md hover:bg-muted/80 transition-colors">
-                {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
-              </button>
-            </div>
-            <button onClick={() => { setNewSite(null); setShowSetup(false); fetchSites(); }}
-              className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-              Go to Dashboard
-            </button>
-          </div>
+          <InstallGuide site={activeSite} onCopy={copyEmbed} copied={copied} onDone={() => { setNewSite(null); setShowSetup(false); fetchSites(); }} />
         )}
       </div>
     );
@@ -469,6 +445,191 @@ function DashboardContent() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ===== Install Guide Component =====
+type InstallMethod = "nextjs" | "wordpress" | "shopify" | "html" | "gtm" | "claude-code" | null;
+
+function InstallGuide({ site, onCopy, copied, onDone }: {
+  site: Site;
+  onCopy: () => void;
+  copied: boolean;
+  onDone: () => void;
+}) {
+  const [method, setMethod] = useState<InstallMethod>(null);
+  const [verifyUrl, setVerifyUrl] = useState(site.domain || "");
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const widgetBase = site.domain
+    ? `https://${site.domain.replace(/^https?:\/\//, "")}`
+    : process.env.NEXT_PUBLIC_APP_URL || "https://ai-customer-service-neon.vercel.app";
+  const scriptTag = `<script src="${widgetBase}/widget.js" data-api-key="${site.api_key}"></script>`;
+
+  async function verifyInstall() {
+    if (!verifyUrl) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const url = verifyUrl.startsWith("http") ? verifyUrl : `https://${verifyUrl}`;
+      const res = await fetch("/api/verify-install", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, api_key: site.api_key }),
+      });
+      const data = await res.json();
+      setVerifyResult(data);
+    } catch {
+      setVerifyResult({ ok: false, message: "Failed to check. Please verify manually." });
+    }
+    setVerifying(false);
+  }
+
+  const methods: { id: InstallMethod; label: string; desc: string; icon: string }[] = [
+    { id: "claude-code", label: "Claude Code", desc: "One command auto-install", icon: "🤖" },
+    { id: "gtm", label: "Google Tag Manager", desc: "No code changes", icon: "📊" },
+    { id: "nextjs", label: "Next.js / React", desc: "Use next/script", icon: "⚛️" },
+    { id: "wordpress", label: "WordPress", desc: "Edit theme footer", icon: "📝" },
+    { id: "shopify", label: "Shopify", desc: "Edit theme.liquid", icon: "🛍️" },
+    { id: "html", label: "HTML / Other", desc: "Paste before </body>", icon: "🌐" },
+  ];
+
+  const getSteps = (): string[] => {
+    switch (method) {
+      case "nextjs": return [
+        "Open your root layout file (e.g. src/app/layout.tsx)",
+        "Add this import at the top:\nimport Script from 'next/script'",
+        "CODE:" + `<Script\n  src="${widgetBase}/widget.js"\n  data-api-key="${site.api_key}"\n  strategy="afterInteractive"\n/>`,
+        "Add the above code inside <body>, save and deploy.",
+      ];
+      case "wordpress": return [
+        "Go to Admin → Appearance → Theme File Editor",
+        "Open footer.php",
+        "CODE:" + scriptTag,
+        "Paste the code right before </body> and click Update File.",
+      ];
+      case "shopify": return [
+        "Go to Online Store → Themes → Edit Code",
+        "Open theme.liquid, find </body>",
+        "CODE:" + scriptTag,
+        "Paste right before </body> and Save.",
+      ];
+      case "html": return [
+        "Open your HTML file (e.g. index.html)",
+        "Find the </body> tag",
+        "CODE:" + scriptTag,
+        "Paste right before </body>, upload to your server.",
+      ];
+      case "gtm": return [
+        "Open Google Tag Manager → your container",
+        "Click New Tag → Tag Type: Custom HTML",
+        "CODE:" + scriptTag,
+        "Set Trigger to All Pages → Page View, then Submit to publish.",
+      ];
+      case "claude-code": return [
+        "Open your project in Claude Code (terminal or IDE)",
+        "Paste this message to Claude:",
+        "CODE:Please add an AI customer service chat widget to my website.\nAdd this script tag to my root layout or main HTML file, right before </body>:\n\n" + scriptTag + "\n\nDetect my framework and place it in the correct file.",
+        "Claude will auto-detect your framework and install it.",
+      ];
+      default: return [];
+    }
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+      <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mx-auto">
+        <Check className="w-6 h-6 text-success" />
+      </div>
+      <h3 className="font-semibold text-foreground text-center text-lg">Install AI Chat Widget</h3>
+      <p className="text-sm text-muted-foreground text-center">
+        Choose how you want to add the widget to your website
+      </p>
+
+      {!method ? (
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          {methods.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => setMethod(m.id)}
+              className="flex items-start gap-3 p-4 bg-background border border-border rounded-lg text-left hover:border-primary/50 transition-colors"
+            >
+              <span className="text-xl">{m.icon}</span>
+              <div>
+                <p className="text-sm font-medium text-foreground">{m.label}</p>
+                <p className="text-xs text-muted-foreground">{m.desc}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <button onClick={() => setMethod(null)} className="text-xs text-primary hover:underline">
+            ← Choose different method
+          </button>
+          <ol className="space-y-3">
+            {getSteps().map((step, i) => {
+              if (step.startsWith("CODE:")) {
+                const code = step.slice(5);
+                return (
+                  <li key={i} className="relative">
+                    <pre className="bg-background border border-border rounded-lg p-4 text-xs text-foreground overflow-x-auto font-mono whitespace-pre-wrap">{code}</pre>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(code); onCopy(); }}
+                      className="absolute top-2 right-2 p-1.5 bg-muted rounded-md hover:bg-muted/80 transition-colors"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </button>
+                  </li>
+                );
+              }
+              return (
+                <li key={i} className="flex gap-3 text-sm text-muted-foreground">
+                  <span className="text-primary font-bold shrink-0">{i + 1}.</span>
+                  <span>{step}</span>
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* Verification */}
+          <div className="border-t border-border pt-4 mt-4">
+            <h4 className="font-medium text-foreground text-sm mb-2">Verify Installation</h4>
+            <p className="text-xs text-muted-foreground mb-3">Check if the widget is properly installed on your site</p>
+            <div className="flex gap-2">
+              <input
+                value={verifyUrl}
+                onChange={(e) => setVerifyUrl(e.target.value)}
+                placeholder="example.com"
+                className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                onClick={verifyInstall}
+                disabled={verifying || !verifyUrl}
+                className="px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                {verifying ? "Checking..." : "Verify"}
+              </button>
+            </div>
+            {verifyResult && (
+              <div className={cn(
+                "flex items-center gap-2 mt-3 p-3 rounded-lg text-sm",
+                verifyResult.ok ? "bg-success/10 text-success border border-success/20" : "bg-warning/10 text-warning border border-warning/20"
+              )}>
+                {verifyResult.ok ? <Check className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                {verifyResult.message}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <button onClick={onDone}
+        className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+        Go to Dashboard
+      </button>
     </div>
   );
 }
