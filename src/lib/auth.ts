@@ -45,6 +45,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    authorized({ auth: session, request }) {
+      const isLoggedIn = !!session?.user;
+      const isProtected = request.nextUrl.pathname.startsWith("/dashboard");
+      if (isProtected && !isLoggedIn) {
+        return Response.redirect(new URL("/login", request.url));
+      }
+      return true;
+    },
     async signIn({ user, account }) {
       // For OAuth providers, auto-create user in DB if not exists
       if (account?.provider === "github" && user.email) {
