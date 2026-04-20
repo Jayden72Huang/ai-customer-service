@@ -1,10 +1,16 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
 import { compare } from "bcryptjs";
 import { getDb } from "./db";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   providers: [
+    GitHub({
+      clientId: process.env.AUTH_GITHUB_ID,
+      clientSecret: process.env.AUTH_GITHUB_SECRET,
+    }),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -25,7 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = rows[0];
         const valid = await compare(
           credentials.password as string,
-          user.password_hash as string
+          user.password_hash as string,
         );
 
         if (!valid) return null;
@@ -39,12 +45,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    authorized({ auth, request }) {
-      const isLoggedIn = !!auth?.user;
-      const isProtected =
-        request.nextUrl.pathname.startsWith("/dashboard");
-      if (isProtected && !isLoggedIn) {
-        return Response.redirect(new URL("/login", request.url));
+    async signIn({ user, account }) {
+      // For OAuth providers, auto-create user in DB if not exists
+      if (account?.provider === "github" && user.email) {
+        const sql = getDb();
+        const existing = await sql`SELECT id FROM users WHERE email = ${user.email}`;
+        if (existing.length === 0) {
+          const rows = await sql`
+            INSERT INTO users (email, password_hash, name)
+            VALUES (${user.email}, ${"oauth-no-password"}, ${user.name || user.email.split("@")[0]})
+            RETURNING id
+          `;
+          user.id = rows[0].id as string;
+        } else {
+          user.id = existing[0].id as string;
+        }
       }
       return true;
     },
