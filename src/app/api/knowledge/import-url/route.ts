@@ -11,10 +11,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { site_id, url } = await req.json();
+  const { site_id, url, text: directText } = await req.json();
 
-  if (!site_id || !url) {
-    return Response.json({ error: "Missing site_id or url" }, { status: 400 });
+  if (!site_id || (!url && !directText)) {
+    return Response.json({ error: "Missing site_id, url, or text" }, { status: 400 });
   }
 
   const sql = getDb();
@@ -26,29 +26,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Fetch the URL content
-    const pageRes = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AICSBot/1.0)",
-        "Accept": "text/html,application/xhtml+xml,text/plain,*/*",
-      },
-    });
+    let text: string;
 
-    if (!pageRes.ok) {
-      return Response.json({ error: `Failed to fetch URL: ${pageRes.status}` }, { status: 400 });
-    }
+    if (directText) {
+      // Direct text paste — skip URL fetch
+      text = directText;
+    } else {
+      // Fetch the URL content
+      const pageRes = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; AICSBot/1.0)",
+          "Accept": "text/html,application/xhtml+xml,text/plain,*/*",
+        },
+      });
 
-    const contentType = pageRes.headers.get("content-type") || "";
-    let text = await pageRes.text();
+      if (!pageRes.ok) {
+        return Response.json({ error: `Failed to fetch URL (HTTP ${pageRes.status}). The document may require login. Try using "Paste Text" instead.` }, { status: 400 });
+      }
 
-    // Strip HTML tags to get plain text
-    if (contentType.includes("html")) {
-      text = text
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+      const contentType = pageRes.headers.get("content-type") || "";
+      text = await pageRes.text();
+
+      // Check if we got a login page instead of actual content
+      if (text.includes("login") && text.includes("password") && text.length < 5000) {
+        return Response.json({ error: "The URL returned a login page. Please make the document public, or copy the content and use \"Paste Text\" instead." }, { status: 400 });
+      }
+
+      // Strip HTML tags to get plain text
+      if (contentType.includes("html")) {
+        text = text
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
     }
 
     // Truncate to avoid token limits
