@@ -32,6 +32,22 @@ export async function POST(req: NextRequest) {
       // Direct text paste — skip URL fetch
       text = directText;
     } else {
+      // Detect SPA-rendered docs that can't be fetched
+      const spaPatterns = [
+        { pattern: /feishu\.(cn|com)\/doc/, name: "Feishu" },
+        { pattern: /larksuite\.com\/doc/, name: "Lark" },
+        { pattern: /notion\.(so|site)\//, name: "Notion" },
+        { pattern: /yuque\.com\//, name: "Yuque" },
+        { pattern: /wolai\.com\//, name: "Wolai" },
+        { pattern: /shimo\.im\//, name: "Shimo" },
+      ];
+      const matched = spaPatterns.find((p) => p.pattern.test(url));
+      if (matched) {
+        return Response.json({
+          error: `${matched.name} documents are dynamically rendered and cannot be fetched directly. Please open the document, select all content (Ctrl+A), copy it, then use the "Paste Text" button to import.`,
+        }, { status: 400 });
+      }
+
       // Fetch the URL content
       const pageRes = await fetch(url, {
         headers: {
