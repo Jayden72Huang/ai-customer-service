@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   MessageSquare,
   AlertTriangle,
@@ -12,6 +13,9 @@ import {
   Globe,
   Mail,
   Code,
+  Bot,
+  ExternalLink,
+  Settings,
 } from "lucide-react";
 
 interface Stats {
@@ -37,13 +41,25 @@ function cn(...classes: (string | undefined | false)[]) {
 }
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><p className="text-muted-foreground">Loading...</p></div>}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [sites, setSites] = useState<Site[]>([]);
   const [site, setSite] = useState<Site | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showSetup, setShowSetup] = useState(false);
 
   // Onboarding state
   const [setupStep, setSetupStep] = useState<SetupStep>("create");
-  const [newSite, setNewSite] = useState<Site | null>(null); // stores site during onboarding
+  const [newSite, setNewSite] = useState<Site | null>(null);
   const [siteName, setSiteName] = useState("");
   const [domain, setDomain] = useState("");
   const [color, setColor] = useState("#2563eb");
@@ -53,19 +69,23 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const fetchSite = useCallback(async () => {
+  const fetchSites = useCallback(async () => {
     try {
       const res = await fetch("/api/sites");
       if (res.ok) {
         const data = await res.json();
-        if (data.sites?.length > 0) {
-          setSite(data.sites[0]);
-          // Fetch stats
-          const statsRes = await fetch(`/api/insights?site_id=${data.sites[0].id}`);
+        const allSites = data.sites || [];
+        setSites(allSites);
+        if (allSites.length > 0) {
+          setSite(allSites[0]);
+          const statsRes = await fetch(`/api/insights?site_id=${allSites[0].id}`);
           if (statsRes.ok) {
             const statsData = await statsRes.json();
             setStats(statsData.stats);
           }
+        } else {
+          // No sites: auto-show setup
+          setShowSetup(true);
         }
       }
     } catch { /* ignore */ }
@@ -73,8 +93,22 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchSite();
-  }, [fetchSite]);
+    fetchSites();
+  }, [fetchSites]);
+
+  // Handle ?setup=new query param
+  useEffect(() => {
+    if (searchParams.get("setup") === "new") {
+      setShowSetup(true);
+      setSetupStep("create");
+      setNewSite(null);
+      setSiteName("");
+      setDomain("");
+      setEmail("");
+      // Clean up URL
+      router.replace("/dashboard");
+    }
+  }, [searchParams, router]);
 
   async function createSite() {
     setCreating(true);
@@ -128,9 +162,9 @@ export default function DashboardPage() {
     );
   }
 
-  // ===== NO SITE or IN ONBOARDING: Show Setup =====
-  if (!site || newSite) {
-    const activeSite = newSite; // non-null after step 1
+  // ===== SETUP MODE: Show Onboarding =====
+  if (showSetup || newSite) {
+    const activeSite = newSite;
     const steps: { id: SetupStep; label: string; icon: React.ElementType }[] = [
       { id: "create", label: "Create Site", icon: Globe },
       { id: "knowledge", label: "Knowledge", icon: BookOpen },
@@ -311,7 +345,7 @@ export default function DashboardPage() {
                 {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
               </button>
             </div>
-            <button onClick={() => { setNewSite(null); fetchSite(); }}
+            <button onClick={() => { setNewSite(null); setShowSetup(false); fetchSites(); }}
               className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
               Go to Dashboard
             </button>
@@ -346,6 +380,69 @@ export default function DashboardPage() {
             <p className="text-3xl font-bold text-foreground">{card.value}</p>
           </div>
         ))}
+      </div>
+
+      {/* Your AI Agents */}
+      <div className="bg-card border border-border rounded-xl p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">Your AI Agents</h3>
+          <button
+            onClick={() => { setShowSetup(true); setSetupStep("create"); setNewSite(null); setSiteName(""); setDomain(""); setEmail(""); }}
+            className="text-xs text-primary hover:underline"
+          >
+            + Add New
+          </button>
+        </div>
+        {sites.length === 0 ? (
+          <div className="text-center py-8">
+            <Bot className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-30" />
+            <p className="text-muted-foreground text-sm mb-4">No AI agents yet</p>
+            <button
+              onClick={() => { setShowSetup(true); setSetupStep("create"); }}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Create Your First AI Agent
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sites.map((s) => (
+              <div key={s.id} className="flex items-center justify-between p-4 bg-background border border-border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground text-sm">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {s.domain || "No domain configured"} · API Key: {s.api_key.slice(0, 8)}...
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`/dashboard/settings`}
+                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                    title="Settings"
+                  >
+                    <Settings className="w-4 h-4" />
+                  </a>
+                  {s.domain && (
+                    <a
+                      href={`https://${s.domain.replace(/^https?:\/\//, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                      title="Visit site"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {stats?.category_breakdown && Object.keys(stats.category_breakdown).length > 0 && (

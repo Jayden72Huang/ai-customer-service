@@ -146,7 +146,7 @@ export default function DashboardLayout({
               )}
             </div>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/dashboard?setup=new")}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               <Plus className="w-4 h-4" />
