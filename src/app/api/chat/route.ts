@@ -78,11 +78,20 @@ export async function POST(req: NextRequest) {
       LIMIT 20
     `;
 
-    // 6. Stream AI response
+    // 6. Fetch latest knowledge document (evolving MD)
+    const kdocs = await sql`
+      SELECT content FROM knowledge_documents
+      WHERE site_id = ${site.id}
+      ORDER BY version DESC LIMIT 1
+    `;
+    const knowledgeDoc = kdocs.length > 0 ? (kdocs[0].content as string) : undefined;
+
+    // 7. Stream AI response
     const result = await chatStream({
       provider: settings.ai_provider || "deepseek",
       siteName: site.name as string,
       knowledgeEntries: knowledge as unknown as KnowledgeEntry[],
+      knowledgeDoc,
       messages: chatMessages,
       locale,
     });

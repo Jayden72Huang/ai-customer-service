@@ -22,20 +22,28 @@ function getModel(provider: AIProvider) {
 function buildSystemPrompt(
   siteName: string,
   knowledgeEntries: KnowledgeEntry[],
+  knowledgeDoc?: string,
   locale?: string
 ) {
-  const kbSection =
-    knowledgeEntries.length > 0
-      ? `\n\nKnowledge Base:\n${knowledgeEntries
-          .map((e) => `Q: ${e.question}\nA: ${e.answer}`)
-          .join("\n\n")}`
-      : "";
+  let kbSection = "";
+
+  // Priority: use the evolving MD document if available
+  if (knowledgeDoc) {
+    kbSection = `\n\n## Knowledge Document:\n${knowledgeDoc.slice(0, 6000)}`;
+  }
+
+  // Also include Q&A entries
+  if (knowledgeEntries.length > 0) {
+    kbSection += `\n\n## FAQ Entries:\n${knowledgeEntries
+      .map((e) => `Q: ${e.question}\nA: ${e.answer}`)
+      .join("\n\n")}`;
+  }
 
   return `You are the AI customer service assistant for "${siteName}".
 
 Rules:
 1. Be helpful, concise, and friendly. Keep responses under 200 words.
-2. Answer based on the knowledge base when possible.
+2. Answer based on the knowledge document and FAQ entries when possible.
 3. If you cannot answer confidently, say so honestly.
 4. When the user's issue requires human intervention (billing disputes, account security, complex technical issues, or explicit request for human agent), include exactly one of these tags at the END of your response:
    - [NEEDS_HUMAN:HIGH] — for urgent issues (billing, security, data loss)
@@ -49,6 +57,7 @@ export async function chatStream(opts: {
   provider: AIProvider;
   siteName: string;
   knowledgeEntries: KnowledgeEntry[];
+  knowledgeDoc?: string;
   messages: { role: "user" | "assistant"; content: string }[];
   locale?: string;
 }) {
@@ -56,6 +65,7 @@ export async function chatStream(opts: {
   const systemPrompt = buildSystemPrompt(
     opts.siteName,
     opts.knowledgeEntries,
+    opts.knowledgeDoc,
     opts.locale
   );
 

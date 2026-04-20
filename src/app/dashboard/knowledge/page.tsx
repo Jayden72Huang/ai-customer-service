@@ -33,6 +33,17 @@ function getCurrentSiteId() {
 
 type ImportTab = "url" | "paste" | null;
 
+interface KnowledgeDoc {
+  id: string;
+  title: string;
+  content: string;
+  version: number;
+  source: string;
+  changes_summary: string | null;
+  content_length?: number;
+  created_at: string;
+}
+
 export default function KnowledgePage() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [search, setSearch] = useState("");
@@ -47,6 +58,11 @@ export default function KnowledgePage() {
   const [pasteText, setPasteText] = useState("");
   const [urlImporting, setUrlImporting] = useState(false);
   const [importError, setImportError] = useState("");
+  const mdRef = useRef<HTMLInputElement>(null);
+  const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
+  const [latestDoc, setLatestDoc] = useState<KnowledgeDoc | null>(null);
+  const [evolving, setEvolving] = useState(false);
+  const [showDoc, setShowDoc] = useState(false);
 
   const fetchEntries = useCallback(async () => {
     const res = await fetch(`/api/knowledge?site_id=${getCurrentSiteId()}`);
@@ -56,9 +72,19 @@ export default function KnowledgePage() {
     }
   }, []);
 
+  const fetchDocs = useCallback(async () => {
+    const res = await fetch(`/api/knowledge/docs?site_id=${getCurrentSiteId()}`);
+    if (res.ok) {
+      const data = await res.json();
+      setDocs(data.documents || []);
+      setLatestDoc(data.latest || null);
+    }
+  }, []);
+
   useEffect(() => {
     fetchEntries();
-  }, [fetchEntries]);
+    fetchDocs();
+  }, [fetchEntries, fetchDocs]);
 
   async function addEntry() {
     if (!newEntry.question || !newEntry.answer) return;
@@ -174,6 +200,50 @@ export default function KnowledgePage() {
     setUrlImporting(false);
   }
 
+  async function handleMdUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("site_id", getCurrentSiteId());
+    try {
+      const res = await fetch("/api/knowledge/upload-doc", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        fetchDocs();
+      } else {
+        alert(data.error || "Upload failed");
+      }
+    } catch {
+      alert("Upload failed");
+    }
+    setImporting(false);
+    if (mdRef.current) mdRef.current.value = "";
+  }
+
+  async function handleEvolve() {
+    setEvolving(true);
+    try {
+      const res = await fetch("/api/knowledge/evolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_id: getCurrentSiteId() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.evolved) {
+        alert(`Knowledge evolved to v${data.version}!\n\nChanges:\n${data.changes_summary}\n\nAnalyzed ${data.interactions_analyzed} conversations.`);
+        fetchDocs();
+      } else {
+        alert(data.message || data.error || "Evolution failed");
+      }
+    } catch {
+      alert("Evolution failed");
+    }
+    setEvolving(false);
+  }
+
   const filtered = entries.filter(
     (e) =>
       e.question.toLowerCase().includes(search.toLowerCase()) ||
@@ -225,7 +295,74 @@ export default function KnowledgePage() {
           <FileText className="w-4 h-4" />
           Paste Text
         </button>
+        <button
+          onClick={() => mdRef.current?.click()}
+          disabled={importing}
+          className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
+        >
+          <FileText className="w-4 h-4" />
+          {importing ? "Uploading..." : "Upload MD/TXT"}
+        </button>
+        <input ref={mdRef} type="file" accept=".md,.txt,.markdown" onChange={handleMdUpload} className="hidden" />
       </div>
+
+      {/* Knowledge Document (Evolving MD) */}
+      {latestDoc && (
+        <div className="bg-card border border-border rounded-xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <FileText className="w-5 h-5 text-primary" />
+              <div>
+                <p className="font-medium text-foreground text-sm">{latestDoc.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  v{latestDoc.version} · {latestDoc.source === "auto_evolved" ? "Auto-evolved" : "Uploaded"} · {new Date(latestDoc.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowDoc(!showDoc)}
+                className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-xs hover:bg-muted/80 transition-colors"
+              >
+                {showDoc ? "Hide" : "View"}
+              </button>
+              <button
+                onClick={handleEvolve}
+                disabled={evolving}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {evolving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                {evolving ? "Evolving..." : "Evolve Now"}
+              </button>
+            </div>
+          </div>
+          {latestDoc.changes_summary && (
+            <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-3">
+              Latest changes: {latestDoc.changes_summary}
+            </p>
+          )}
+          {showDoc && (
+            <pre className="bg-background border border-border rounded-lg p-4 text-xs text-foreground overflow-auto max-h-96 whitespace-pre-wrap font-mono">
+              {latestDoc.content}
+            </pre>
+          )}
+          {docs.length > 1 && (
+            <details className="mt-3">
+              <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                Version history ({docs.length} versions)
+              </summary>
+              <div className="mt-2 space-y-1">
+                {docs.map((d) => (
+                  <div key={d.id} className="flex items-center justify-between text-xs text-muted-foreground py-1">
+                    <span>v{d.version} — {d.source === "auto_evolved" ? "Auto-evolved" : "Uploaded"}</span>
+                    <span>{new Date(d.created_at).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Import Panel */}
       {importTab && (
