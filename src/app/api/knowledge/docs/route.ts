@@ -38,3 +38,37 @@ export async function GET(req: NextRequest) {
     latest: latest.length > 0 ? latest[0] : null,
   });
 }
+
+// DELETE — delete a document (or all versions for a site)
+export async function DELETE(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const docId = url.searchParams.get("id");
+  const siteId = url.searchParams.get("site_id");
+
+  if (!siteId) {
+    return Response.json({ error: "Missing site_id" }, { status: 400 });
+  }
+
+  const sql = getDb();
+
+  if (docId) {
+    // Delete a specific document version
+    await sql`
+      DELETE FROM knowledge_documents
+      WHERE id = ${docId} AND site_id = ${siteId}
+    `;
+  } else {
+    // Delete all document versions for the site
+    await sql`
+      DELETE FROM knowledge_documents
+      WHERE site_id = ${siteId}
+    `;
+  }
+
+  return Response.json({ success: true });
+}

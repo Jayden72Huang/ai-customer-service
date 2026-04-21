@@ -63,6 +63,7 @@ export default function KnowledgePage() {
   const [latestDoc, setLatestDoc] = useState<KnowledgeDoc | null>(null);
   const [evolving, setEvolving] = useState(false);
   const [showDoc, setShowDoc] = useState(false);
+  const [confirmDeleteDoc, setConfirmDeleteDoc] = useState(false);
 
   const fetchEntries = useCallback(async () => {
     const res = await fetch(`/api/knowledge?site_id=${getCurrentSiteId()}`);
@@ -244,6 +245,22 @@ export default function KnowledgePage() {
     setEvolving(false);
   }
 
+  async function deleteDoc() {
+    try {
+      const res = await fetch(
+        `/api/knowledge/docs?site_id=${getCurrentSiteId()}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        setConfirmDeleteDoc(false);
+        setShowDoc(false);
+        fetchDocs();
+      }
+    } catch {
+      alert("Failed to delete document");
+    }
+  }
+
   const filtered = entries.filter(
     (e) =>
       e.question.toLowerCase().includes(search.toLowerCase()) ||
@@ -321,6 +338,13 @@ export default function KnowledgePage() {
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setConfirmDeleteDoc(true)}
+                className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-muted"
+                title="Delete document"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setShowDoc(!showDoc)}
                 className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-xs hover:bg-muted/80 transition-colors"
               >
@@ -361,6 +385,32 @@ export default function KnowledgePage() {
               </div>
             </details>
           )}
+        </div>
+      )}
+
+      {/* Delete Document Confirmation Dialog */}
+      {confirmDeleteDoc && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-xl p-6 max-w-sm mx-4 shadow-lg">
+            <h3 className="font-semibold text-foreground mb-2">Delete Document</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to delete this document and all its versions? This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDeleteDoc(false)}
+                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteDoc}
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
