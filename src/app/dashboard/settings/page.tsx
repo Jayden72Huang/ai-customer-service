@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [site, setSite] = useState<SiteSettings | null>(null);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(null);
 
   useEffect(() => {
     async function loadSite() {
@@ -59,8 +60,9 @@ export default function SettingsPage() {
   async function saveSite() {
     if (!site) return;
     setSaving(true);
+    setSaveStatus(null);
     try {
-      await fetch("/api/sites", {
+      const res = await fetch("/api/sites", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -70,8 +72,12 @@ export default function SettingsPage() {
           settings: site.settings,
         }),
       });
-    } catch { /* ignore */ }
+      setSaveStatus(res.ok ? "success" : "error");
+    } catch {
+      setSaveStatus("error");
+    }
     setSaving(false);
+    setTimeout(() => setSaveStatus(null), 3000);
   }
 
   function updateSettings(key: string, value: unknown) {
@@ -246,14 +252,26 @@ export default function SettingsPage() {
       </section>
 
       {/* Save */}
-      <button
-        onClick={saveSite}
-        disabled={saving}
-        className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-      >
-        <Save className="w-4 h-4" />
-        {saving ? "Saving..." : "Save Settings"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={saveSite}
+          disabled={saving}
+          className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          <Save className="w-4 h-4" />
+          {saving ? "Saving..." : "Save Settings"}
+        </button>
+        {saveStatus === "success" && (
+          <span className="flex items-center gap-1.5 text-sm text-green-500 animate-in fade-in">
+            <Check className="w-4 h-4" /> Settings saved
+          </span>
+        )}
+        {saveStatus === "error" && (
+          <span className="text-sm text-red-500 animate-in fade-in">
+            Save failed, please try again
+          </span>
+        )}
+      </div>
     </div>
   );
 }
