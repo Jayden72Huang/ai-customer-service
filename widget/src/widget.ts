@@ -190,6 +190,17 @@ class AIChatWidget extends HTMLElement {
           line-height: 1.5;
           word-wrap: break-word;
         }
+        .msg strong { font-weight: 600; }
+        .msg p { margin: 0 0 6px 0; }
+        .msg p:last-child { margin-bottom: 0; }
+        .msg ul, .msg ol { margin: 4px 0; padding-left: 18px; }
+        .msg li { margin: 2px 0; }
+        .msg code {
+          background: rgba(255,255,255,0.1);
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 12px;
+        }
         .msg.user {
           align-self: flex-end;
           background: var(--primary);
@@ -442,11 +453,15 @@ class AIChatWidget extends HTMLElement {
           }
         }
 
-        // Clean up any escalation tags from visible text
+        // Render final response with markdown
         if (msgEl) {
-          msgEl.textContent = fullResponse
+          const cleaned = fullResponse
             .replace(/\[NEEDS_HUMAN:(HIGH|NORMAL)\]/g, "")
             .trim();
+          // Preserve the time element, re-render with markdown
+          const timeEl = msgEl.querySelector(".msg-time");
+          msgEl.innerHTML = this.renderMarkdown(cleaned);
+          if (timeEl) msgEl.appendChild(timeEl);
         }
       }
     } catch (error) {
@@ -502,6 +517,29 @@ class AIChatWidget extends HTMLElement {
     if (container) {
       container.scrollTop = container.scrollHeight;
     }
+  }
+
+  private renderMarkdown(text: string): string {
+    // Sanitize HTML entities first
+    let html = text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    // Inline code
+    html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+    // Unordered lists
+    html = html.replace(/^[-•] (.+)$/gm, "<li>$1</li>");
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>");
+    // Paragraphs (double newline)
+    html = html.replace(/\n\n/g, "</p><p>");
+    html = `<p>${html}</p>`;
+    // Single newlines to <br>
+    html = html.replace(/\n/g, "<br>");
+    // Clean empty paragraphs
+    html = html.replace(/<p>\s*<\/p>/g, "");
+    return html;
   }
 }
 
