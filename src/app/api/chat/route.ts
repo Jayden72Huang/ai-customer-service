@@ -102,7 +102,8 @@ export async function POST(req: NextRequest) {
     const transformStream = new TransformStream<string, Uint8Array>({
       transform(chunk, controller) {
         fullResponse += chunk;
-        controller.enqueue(encoder.encode(chunk));
+        // Output in AI SDK data stream format: 0:"chunk"\n
+        controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk)}\n`));
       },
       async flush() {
         const cleaned = cleanAIResponse(fullResponse);
