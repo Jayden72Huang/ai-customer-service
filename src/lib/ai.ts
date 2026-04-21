@@ -16,7 +16,7 @@ function getModel(provider: AIProvider) {
   if (provider === "anthropic") {
     return anthropic("claude-sonnet-4-20250514");
   }
-  return deepseek("deepseek-chat");
+  return deepseek.chat("deepseek-chat");
 }
 
 function buildSystemPrompt(
