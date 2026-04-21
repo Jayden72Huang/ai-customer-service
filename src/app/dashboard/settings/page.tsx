@@ -10,6 +10,7 @@ interface SiteSettings {
   api_key: string;
   settings: {
     ai_provider: string;
+    chat_style: string;
     widget_color: string;
     widget_position: string;
     welcome_message: string;
@@ -151,6 +152,24 @@ export default function SettingsPage() {
               <option value="deepseek">DeepSeek (Cost-effective)</option>
               <option value="anthropic">Claude (Higher quality)</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">Chat Style</label>
+            <select
+              value={site?.settings.chat_style || "product"}
+              onChange={(e) => updateSettings("chat_style", e.target.value)}
+              className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="professional">🎯 Professional — Structured, authoritative</option>
+              <option value="product">🚀 Product Buddy — Enthusiastic, knowledgeable</option>
+              <option value="minimal">⚡ Minimal — Direct, no fluff</option>
+              <option value="warm">💛 Warm & Caring — Patient, empathetic</option>
+              <option value="playful">🎮 Playful — Casual, witty, fun</option>
+              <option value="brand">🏷️ Brand Ambassador — On-brand, memorable</option>
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Controls how your AI assistant communicates with visitors.
+            </p>
           </div>
           <div>
             <label className="block text-sm text-muted-foreground mb-1">Welcome Message</label>

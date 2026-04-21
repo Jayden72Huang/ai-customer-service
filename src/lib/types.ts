@@ -8,6 +8,7 @@ export type Priority = "low" | "normal" | "high" | "urgent";
 export type MessageRole = "user" | "assistant" | "admin";
 export type KnowledgeSource = "manual" | "csv_import" | "auto_learned";
 export type AIProvider = "anthropic" | "deepseek";
+export type ChatStyle = "professional" | "product" | "minimal" | "warm" | "playful" | "brand";
 
 // --- Site (Tenant) ---
 export interface Site {
@@ -23,6 +24,7 @@ export interface Site {
 
 export interface SiteSettings {
   ai_provider: AIProvider;
+  chat_style: ChatStyle;
   widget_color: string;
   widget_position: "bottom-right" | "bottom-left";
   welcome_message: string;

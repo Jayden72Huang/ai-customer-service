@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db";
 import { chatStream } from "@/lib/ai";
 import { classifyMessage, cleanAIResponse } from "@/lib/classifier";
 import { triggerEscalation } from "@/lib/escalation";
-import type { AIProvider, KnowledgeEntry, Message, Conversation } from "@/lib/types";
+import type { AIProvider, ChatStyle, KnowledgeEntry, Message, Conversation } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     const site = sites[0];
     const settings = site.settings as {
       ai_provider: AIProvider;
+      chat_style: ChatStyle;
       escalation_email: string;
       max_messages_per_hour: number;
     };
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
     // 7. Stream AI response
     const result = await chatStream({
       provider: settings.ai_provider || "deepseek",
+      chatStyle: settings.chat_style || "product",
       siteName: site.name as string,
       knowledgeEntries: knowledge as unknown as KnowledgeEntry[],
       knowledgeDoc,
