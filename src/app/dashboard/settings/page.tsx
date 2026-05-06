@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, Copy, Check, Code } from "lucide-react";
+import { Save, Copy, Check, Code, Plus, Trash2, Link2, Lock } from "lucide-react";
+import { useSite } from "@/components/site-context";
 
-interface SiteSettings {
+interface QuickLink {
+  label: string;
+  url: string;
+}
+
+interface SiteSettingsData {
   id: string;
   name: string;
   domain: string;
@@ -18,11 +24,13 @@ interface SiteSettings {
     escalation_phone?: string;
     auto_detect_language: boolean;
     max_messages_per_hour: number;
+    quick_links?: QuickLink[];
   };
 }
 
 export default function SettingsPage() {
-  const [site, setSite] = useState<SiteSettings | null>(null);
+  const { membership } = useSite();
+  const [site, setSite] = useState<SiteSettingsData | null>(null);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"success" | "error" | null>(null);
@@ -34,7 +42,7 @@ export default function SettingsPage() {
         if (res.ok) {
           const data = await res.json();
           if (data.sites?.length > 0) {
-            setSite(data.sites[0] as SiteSettings);
+            setSite(data.sites[0] as SiteSettingsData);
           }
         }
       } catch { /* ignore */ }
@@ -248,6 +256,74 @@ export default function SettingsPage() {
               You&apos;ll receive an email when AI escalates a conversation to human support.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Quick Links (Premium) */}
+      <section className="bg-card border border-border rounded-xl p-6 mb-6 relative">
+        {membership !== "premium" && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] rounded-xl flex items-center justify-center z-10">
+            <div className="text-center">
+              <Lock className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm font-medium text-foreground">Premium Feature</p>
+              <p className="text-xs text-muted-foreground mt-1">Upgrade to add quick action links in your chat widget</p>
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-2 mb-4">
+          <Link2 className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold text-foreground">Quick Links</h3>
+          <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded">PRO</span>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          Add clickable action buttons in the chat widget. Visitors can quickly navigate to important pages.
+        </p>
+        <div className="space-y-3">
+          {(site?.settings.quick_links || []).map((link, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                value={link.label}
+                onChange={(e) => {
+                  const links = [...(site?.settings.quick_links || [])];
+                  links[i] = { ...links[i], label: e.target.value };
+                  updateSettings("quick_links", links);
+                }}
+                placeholder="Label (e.g. View Pricing)"
+                className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <input
+                value={link.url}
+                onChange={(e) => {
+                  const links = [...(site?.settings.quick_links || [])];
+                  links[i] = { ...links[i], url: e.target.value };
+                  updateSettings("quick_links", links);
+                }}
+                placeholder="URL (e.g. https://...)"
+                className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              <button
+                onClick={() => {
+                  const links = (site?.settings.quick_links || []).filter((_, j) => j !== i);
+                  updateSettings("quick_links", links);
+                }}
+                className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          {(site?.settings.quick_links || []).length < 5 && (
+            <button
+              onClick={() => {
+                const links = [...(site?.settings.quick_links || []), { label: "", url: "" }];
+                updateSettings("quick_links", links);
+              }}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Quick Link
+            </button>
+          )}
         </div>
       </section>
 

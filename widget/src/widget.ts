@@ -6,6 +6,12 @@
  * <script src="https://your-domain.com/widget.js" data-api-key="xxx"></script>
  */
 
+interface QuickLink {
+  label: string;
+  url: string;
+  icon?: string;
+}
+
 interface WidgetConfig {
   site_id: string;
   name: string;
@@ -13,6 +19,7 @@ interface WidgetConfig {
   position: "bottom-right" | "bottom-left";
   welcome_message: string;
   auto_detect_language: boolean;
+  quick_links?: QuickLink[];
 }
 
 interface ChatMessage {
@@ -324,6 +331,38 @@ class AIChatWidget extends HTMLElement {
           color: var(--primary);
         }
 
+        .quick-links {
+          padding: 8px 16px;
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          background: var(--card);
+          border-top: 1px solid var(--border);
+        }
+        .quick-links:empty { display: none; }
+        .quick-links::-webkit-scrollbar { display: none; }
+        .quick-link {
+          flex-shrink: 0;
+          padding: 6px 12px;
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          background: var(--bg);
+          color: var(--text);
+          font-size: 11px;
+          cursor: pointer;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: border-color 0.2s, background 0.2s, color 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .quick-link:hover {
+          border-color: var(--primary);
+          background: var(--primary);
+          color: white;
+        }
+
         @media (max-width: 480px) {
           .chat-window {
             width: calc(100vw - 16px);
@@ -351,6 +390,11 @@ class AIChatWidget extends HTMLElement {
         </div>
         <div class="typing" id="typing">
           <span></span><span></span><span></span>
+        </div>
+        <div class="quick-links" id="quickLinks">
+          ${(this.config?.quick_links || []).map((link: QuickLink) =>
+            `<a class="quick-link" href="${link.url}" target="_blank" rel="noopener">${link.label} &rarr;</a>`
+          ).join('')}
         </div>
         <div class="chat-input">
           <input type="text" id="msgInput" placeholder="Type a message..." />

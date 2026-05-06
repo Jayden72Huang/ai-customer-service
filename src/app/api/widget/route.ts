@@ -13,7 +13,10 @@ export async function GET(req: NextRequest) {
   const sql = getDb();
 
   const rows = await sql`
-    SELECT id, name, settings FROM sites WHERE api_key = ${apiKey}
+    SELECT s.id, s.name, s.settings, u.membership
+    FROM sites s
+    JOIN users u ON u.id = s.owner_id
+    WHERE s.api_key = ${apiKey}
   `;
 
   if (rows.length === 0) {
@@ -22,6 +25,7 @@ export async function GET(req: NextRequest) {
 
   const site = rows[0];
   const settings = site.settings as Record<string, unknown>;
+  const isPremium = site.membership === "premium";
 
   return Response.json(
     {
@@ -31,6 +35,7 @@ export async function GET(req: NextRequest) {
       position: settings.widget_position || "bottom-right",
       welcome_message: settings.welcome_message || "Hi! How can I help you?",
       auto_detect_language: settings.auto_detect_language ?? true,
+      quick_links: isPremium ? ((settings.quick_links as unknown[]) || []) : [],
     },
     {
       headers: {

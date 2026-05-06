@@ -14,16 +14,21 @@ import {
   User,
   Plus,
   Bot,
+  FileText,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { SiteContext } from "@/components/site-context";
+
+import type { MembershipTier } from "@/lib/types";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/conversations", label: "Conversations", icon: MessageSquare },
   { href: "/dashboard/knowledge", label: "Knowledge Base", icon: BookOpen },
   { href: "/dashboard/insights", label: "Insights", icon: Lightbulb },
+  { href: "/dashboard/seo", label: "SEO Articles", icon: FileText, premium: true },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -38,6 +43,7 @@ export default function DashboardLayout({
   const [siteId, setSiteId] = useState<string>("");
   const [hasSite, setHasSite] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [membership, setMembership] = useState<MembershipTier>("free");
 
   async function loadSite() {
     try {
@@ -55,6 +61,11 @@ export default function DashboardLayout({
         } else {
           setHasSite(false);
         }
+        // Get membership from session
+        const userMembership = (session?.user as Record<string, unknown> | undefined)?.membership;
+        if (userMembership) {
+          setMembership(userMembership as MembershipTier);
+        }
       }
     } catch {
       // ignore
@@ -67,7 +78,7 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <SiteContext.Provider value={{ siteId, hasSite, refreshSite: loadSite }}>
+    <SiteContext.Provider value={{ siteId, hasSite, membership, refreshSite: loadSite }}>
       <div className="flex h-screen bg-background">
         {/* Sidebar */}
         <aside className="w-64 border-r border-border bg-card flex flex-col">
@@ -81,6 +92,7 @@ export default function DashboardLayout({
               const isActive =
                 pathname === item.href ||
                 (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              const isPro = "premium" in item && item.premium;
               return (
                 <Link
                   key={item.href}
@@ -93,7 +105,12 @@ export default function DashboardLayout({
                   )}
                 >
                   <item.icon className="w-4 h-4" />
-                  {item.label}
+                  <span className="flex-1">{item.label}</span>
+                  {isPro && (
+                    <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded">
+                      PRO
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -106,14 +123,17 @@ export default function DashboardLayout({
                   <User className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {session.user.name || session.user.email}
-                  </p>
-                  {hasSite && (
-                    <p className="text-[10px] text-muted-foreground truncate">
-                      Site active
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {session.user.name || session.user.email}
                     </p>
-                  )}
+                    {membership === "premium" && (
+                      <Crown className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {membership === "premium" ? "Premium" : "Free"}{hasSite ? " · Site active" : ""}
+                  </p>
                 </div>
               </div>
             )}

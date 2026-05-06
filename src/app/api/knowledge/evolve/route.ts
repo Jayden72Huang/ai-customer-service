@@ -1,15 +1,21 @@
 import { NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { isPremiumUser } from "@/lib/premium";
 
 export const maxDuration = 60;
 
 // POST — evolve knowledge document based on recent interaction logs
-// Can be called manually from dashboard or via daily cron
+// Premium feature — only available to premium users
 export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const premium = await isPremiumUser(session.user.id);
+  if (!premium) {
+    return Response.json({ error: "Premium feature. Upgrade to access knowledge evolution." }, { status: 403 });
   }
 
   const { site_id } = await req.json();

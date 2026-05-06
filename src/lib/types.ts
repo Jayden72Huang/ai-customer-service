@@ -9,6 +9,14 @@ export type MessageRole = "user" | "assistant" | "admin";
 export type KnowledgeSource = "manual" | "csv_import" | "auto_learned";
 export type AIProvider = "anthropic" | "deepseek";
 export type ChatStyle = "professional" | "product" | "minimal" | "warm" | "playful" | "brand";
+export type MembershipTier = "free" | "premium";
+
+// --- Quick Link ---
+export interface QuickLink {
+  label: string;
+  url: string;
+  icon?: string;
+}
 
 // --- Site (Tenant) ---
 export interface Site {
@@ -32,6 +40,7 @@ export interface SiteSettings {
   escalation_phone?: string;
   auto_detect_language: boolean;
   max_messages_per_hour: number;
+  quick_links?: QuickLink[];
 }
 
 // --- Conversation ---
@@ -133,4 +142,5 @@ export interface WidgetConfig {
   position: "bottom-right" | "bottom-left";
   welcome_message: string;
   auto_detect_language: boolean;
+  quick_links?: QuickLink[];
 }

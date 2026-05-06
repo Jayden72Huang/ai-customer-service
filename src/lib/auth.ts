@@ -21,7 +21,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const sql = getDb();
         const rows = await sql`
-          SELECT id, email, name, password_hash
+          SELECT id, email, name, password_hash, membership
           FROM users
           WHERE email = ${credentials.email as string}
         `;
@@ -40,6 +40,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id as string,
           email: user.email as string,
           name: user.name as string,
+          membership: (user.membership as string) || "free",
         };
       },
     }),
@@ -57,16 +58,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // For OAuth providers, auto-create user in DB if not exists
       if (account?.provider === "github" && user.email) {
         const sql = getDb();
-        const existing = await sql`SELECT id FROM users WHERE email = ${user.email}`;
+        const existing = await sql`SELECT id, membership FROM users WHERE email = ${user.email}`;
         if (existing.length === 0) {
           const rows = await sql`
             INSERT INTO users (email, password_hash, name)
             VALUES (${user.email}, ${"oauth-no-password"}, ${user.name || user.email.split("@")[0]})
-            RETURNING id
+            RETURNING id, membership
           `;
           user.id = rows[0].id as string;
+          (user as Record<string, unknown>).membership = rows[0].membership || "free";
         } else {
           user.id = existing[0].id as string;
+          (user as Record<string, unknown>).membership = existing[0].membership || "free";
         }
       }
       return true;
@@ -74,12 +77,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.membership = (user as Record<string, unknown>).membership || "free";
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+        (session.user as unknown as Record<string, unknown>).membership = token.membership || "free";
       }
       return session;
     },

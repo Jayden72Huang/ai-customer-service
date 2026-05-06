@@ -1,7 +1,7 @@
-"use strict";(()=>{var d=class extends HTMLElement{constructor(){super();this.config=null;this.apiKey="";this.apiBase="";this.conversationId=null;this.visitorId="";this.messages=[];this.isOpen=!1;this.isLoading=!1;this.shadow=this.attachShadow({mode:"open"}),this.visitorId=this.getOrCreateVisitorId()}async connectedCallback(){let t=document.querySelector('script[data-api-key][src*="widget"]');if(this.apiKey=this.getAttribute("data-api-key")||t?.getAttribute("data-api-key")||"",this.apiBase=this.getAttribute("data-api-base")||t?.src.replace(/\/widget\.js.*$/,"")||window.location.origin,!this.apiKey){console.error("[AI CS Widget] Missing data-api-key attribute");return}await this.fetchConfig(),this.render()}getOrCreateVisitorId(){let t="ai_cs_visitor_id",e=localStorage.getItem(t);return e||(e="v_"+Math.random().toString(36).slice(2)+Date.now().toString(36),localStorage.setItem(t,e)),e}async fetchConfig(){try{let t=await fetch(`${this.apiBase}/api/widget?api_key=${this.apiKey}`);t.ok&&(this.config=await t.json())}catch(t){console.error("[AI CS Widget] Failed to fetch config:",t)}this.config||(this.config={site_id:"",name:"Support",color:"#2563eb",position:"bottom-right",welcome_message:"Hi! How can I help you today?",auto_detect_language:!0})}getLocale(){return this.config?.auto_detect_language&&navigator.language||"en"}render(){let t=this.config?.color||"#2563eb",i=(this.config?.position||"bottom-right")==="bottom-left"?"left: 20px;":"right: 20px;";this.shadow.innerHTML=`
+"use strict";(()=>{var p=class extends HTMLElement{constructor(){super();this.config=null;this.apiKey="";this.apiBase="";this.conversationId=null;this.visitorId="";this.messages=[];this.isOpen=!1;this.isLoading=!1;this.shadow=this.attachShadow({mode:"open"}),this.visitorId=this.getOrCreateVisitorId()}async connectedCallback(){let e=document.querySelector('script[data-api-key][src*="widget"]');if(this.apiKey=this.getAttribute("data-api-key")||e?.getAttribute("data-api-key")||"",this.apiBase=this.getAttribute("data-api-base")||e?.src.replace(/\/widget\.js.*$/,"")||window.location.origin,!this.apiKey){console.error("[AI CS Widget] Missing data-api-key attribute");return}await this.fetchConfig(),this.render()}getOrCreateVisitorId(){let e="ai_cs_visitor_id",t=localStorage.getItem(e);return t||(t="v_"+Math.random().toString(36).slice(2)+Date.now().toString(36),localStorage.setItem(e,t)),t}async fetchConfig(){try{let e=await fetch(`${this.apiBase}/api/widget?api_key=${this.apiKey}`);e.ok&&(this.config=await e.json())}catch(e){console.error("[AI CS Widget] Failed to fetch config:",e)}this.config||(this.config={site_id:"",name:"Support",color:"#2563eb",position:"bottom-right",welcome_message:"Hi! How can I help you today?",auto_detect_language:!0})}getLocale(){return this.config?.auto_detect_language&&navigator.language||"en"}render(){let e=this.config?.color||"#2563eb",i=(this.config?.position||"bottom-right")==="bottom-left"?"left: 20px;":"right: 20px;";this.shadow.innerHTML=`
       <style>
         :host {
-          --primary: ${t};
+          --primary: ${e};
           --bg: #09090b;
           --card: #18181b;
           --border: #27272a;
@@ -87,6 +87,17 @@
           font-size: 13px;
           line-height: 1.5;
           word-wrap: break-word;
+        }
+        .msg strong { font-weight: 600; }
+        .msg p { margin: 0 0 6px 0; }
+        .msg p:last-child { margin-bottom: 0; }
+        .msg ul, .msg ol { margin: 4px 0; padding-left: 18px; }
+        .msg li { margin: 2px 0; }
+        .msg code {
+          background: rgba(255,255,255,0.1);
+          padding: 1px 4px;
+          border-radius: 3px;
+          font-size: 12px;
         }
         .msg.user {
           align-self: flex-end;
@@ -211,6 +222,38 @@
           color: var(--primary);
         }
 
+        .quick-links {
+          padding: 8px 16px;
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          background: var(--card);
+          border-top: 1px solid var(--border);
+        }
+        .quick-links:empty { display: none; }
+        .quick-links::-webkit-scrollbar { display: none; }
+        .quick-link {
+          flex-shrink: 0;
+          padding: 6px 12px;
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          background: var(--bg);
+          color: var(--text);
+          font-size: 11px;
+          cursor: pointer;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: border-color 0.2s, background 0.2s, color 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .quick-link:hover {
+          border-color: var(--primary);
+          background: var(--primary);
+          color: white;
+        }
+
         @media (max-width: 480px) {
           .chat-window {
             width: calc(100vw - 16px);
@@ -239,10 +282,13 @@
         <div class="typing" id="typing">
           <span></span><span></span><span></span>
         </div>
+        <div class="quick-links" id="quickLinks">
+          ${(this.config?.quick_links||[]).map(o=>`<a class="quick-link" href="${o.url}" target="_blank" rel="noopener">${o.label} &rarr;</a>`).join("")}
+        </div>
         <div class="chat-input">
           <input type="text" id="msgInput" placeholder="Type a message..." />
           <button id="sendBtn">Send</button>
         </div>
       </div>
-    `,this.bindEvents()}bindEvents(){let t=this.shadow.getElementById("trigger"),e=this.shadow.getElementById("closeBtn"),i=this.shadow.getElementById("sendBtn"),a=this.shadow.getElementById("msgInput"),o=this.shadow.getElementById("chatWindow");t.addEventListener("click",()=>{this.isOpen=!this.isOpen,o.classList.toggle("open",this.isOpen),this.isOpen&&a.focus()}),e.addEventListener("click",()=>{this.isOpen=!1,o.classList.remove("open")}),i.addEventListener("click",()=>this.sendMessage()),a.addEventListener("keydown",s=>{s.key==="Enter"&&!s.shiftKey&&(s.preventDefault(),this.sendMessage())})}async sendMessage(){let t=this.shadow.getElementById("msgInput"),e=t.value.trim();if(!(!e||this.isLoading)){t.value="",this.addMessage("user",e),this.isLoading=!0,this.showTyping(!0);try{let i=await fetch(`${this.apiBase}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:this.apiKey,conversation_id:this.conversationId,visitor_id:this.visitorId,message:e,locale:this.getLocale()})}),a=i.headers.get("X-Conversation-Id");if(a&&(this.conversationId=a),!i.ok)throw new Error("Failed to get response");let o=i.body?.getReader(),s=new TextDecoder,r="";if(o){this.showTyping(!1);let n=this.addMessage("assistant","");for(;;){let{done:g,value:h}=await o.read();if(g)break;let u=s.decode(h,{stream:!0}).split(`
-`);for(let c of u)if(c.startsWith("0:"))try{let m=JSON.parse(c.slice(2));r+=m,n&&(n.textContent=r,this.scrollToBottom())}catch{}}n&&(n.textContent=r.replace(/\[NEEDS_HUMAN:(HIGH|NORMAL)\]/g,"").trim())}}catch{this.showTyping(!1),this.addMessage("assistant","Sorry, I'm having trouble connecting. Please try again.")}this.isLoading=!1,this.showTyping(!1)}}addMessage(t,e){let i=this.shadow.getElementById("chatMessages"),a=i.querySelector(".welcome");a&&a.remove();let o=document.createElement("div");o.className=`msg ${t}`,o.textContent=e;let s=document.createElement("div");return s.className="msg-time",s.textContent=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),o.appendChild(s),i.appendChild(o),this.scrollToBottom(),this.messages.push({role:t,content:e,time:new Date().toISOString()}),o}showTyping(t){let e=this.shadow.getElementById("typing");e&&e.classList.toggle("show",t)}scrollToBottom(){let t=this.shadow.getElementById("chatMessages");t&&(t.scrollTop=t.scrollHeight)}};customElements.get("ai-chat-widget")||customElements.define("ai-chat-widget",d);(function(){if(document.querySelector("ai-chat-widget"))return;let t=document.currentScript?.getAttribute("data-api-key");if(t){let e=document.createElement("ai-chat-widget");e.setAttribute("data-api-key",t),document.body.appendChild(e)}})();})();
+    `,this.bindEvents()}bindEvents(){let e=this.shadow.getElementById("trigger"),t=this.shadow.getElementById("closeBtn"),i=this.shadow.getElementById("sendBtn"),o=this.shadow.getElementById("msgInput"),a=this.shadow.getElementById("chatWindow");e.addEventListener("click",()=>{this.isOpen=!this.isOpen,a.classList.toggle("open",this.isOpen),this.isOpen&&o.focus()}),t.addEventListener("click",()=>{this.isOpen=!1,a.classList.remove("open")}),i.addEventListener("click",()=>this.sendMessage()),o.addEventListener("keydown",r=>{r.key==="Enter"&&!r.shiftKey&&(r.preventDefault(),this.sendMessage())})}async sendMessage(){let e=this.shadow.getElementById("msgInput"),t=e.value.trim();if(!(!t||this.isLoading)){e.value="",this.addMessage("user",t),this.isLoading=!0,this.showTyping(!0);try{let i=await fetch(`${this.apiBase}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:this.apiKey,conversation_id:this.conversationId,visitor_id:this.visitorId,message:t,locale:this.getLocale()})}),o=i.headers.get("X-Conversation-Id");if(o&&(this.conversationId=o),!i.ok)throw new Error("Failed to get response");let a=i.body?.getReader(),r=new TextDecoder,d="";if(a){this.showTyping(!1);let s=this.addMessage("assistant","");for(;;){let{done:c,value:n}=await a.read();if(c)break;let u=r.decode(n,{stream:!0}).split(`
+`);for(let l of u)if(l.startsWith("0:"))try{let m=JSON.parse(l.slice(2));d+=m,s&&(s.textContent=d,this.scrollToBottom())}catch{}}if(s){let c=d.replace(/\[NEEDS_HUMAN:(HIGH|NORMAL)\]/g,"").trim(),n=s.querySelector(".msg-time");s.innerHTML=this.renderMarkdown(c),n&&s.appendChild(n)}}}catch{this.showTyping(!1),this.addMessage("assistant","Sorry, I'm having trouble connecting. Please try again.")}this.isLoading=!1,this.showTyping(!1)}}addMessage(e,t){let i=this.shadow.getElementById("chatMessages"),o=i.querySelector(".welcome");o&&o.remove();let a=document.createElement("div");a.className=`msg ${e}`,a.textContent=t;let r=document.createElement("div");return r.className="msg-time",r.textContent=new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}),a.appendChild(r),i.appendChild(a),this.scrollToBottom(),this.messages.push({role:e,content:t,time:new Date().toISOString()}),a}showTyping(e){let t=this.shadow.getElementById("typing");t&&t.classList.toggle("show",e)}scrollToBottom(){let e=this.shadow.getElementById("chatMessages");e&&(e.scrollTop=e.scrollHeight)}renderMarkdown(e){let t=e.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");return t=t.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>"),t=t.replace(/`([^`]+)`/g,"<code>$1</code>"),t=t.replace(/^[-•] (.+)$/gm,"<li>$1</li>"),t=t.replace(/((?:<li>.*<\/li>\n?)+)/g,"<ul>$1</ul>"),t=t.replace(/\n\n/g,"</p><p>"),t=`<p>${t}</p>`,t=t.replace(/\n/g,"<br>"),t=t.replace(/<p>\s*<\/p>/g,""),t}};customElements.get("ai-chat-widget")||customElements.define("ai-chat-widget",p);(function(){if(document.querySelector("ai-chat-widget"))return;let e=document.currentScript?.getAttribute("data-api-key");if(e){let t=document.createElement("ai-chat-widget");t.setAttribute("data-api-key",e),document.body.appendChild(t)}})();})();
