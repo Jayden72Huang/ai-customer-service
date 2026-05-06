@@ -5,9 +5,20 @@ import type { MembershipTier } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
 import { translations } from "@/lib/i18n";
 
+export interface SiteData {
+  id: string;
+  name: string;
+  domain: string;
+  api_key: string;
+  settings: Record<string, unknown>;
+}
+
 interface SiteContextType {
   siteId: string;
   hasSite: boolean;
+  sites: SiteData[];
+  currentSite: SiteData | null;
+  switchSite: (siteId: string) => void;
   membership: MembershipTier;
   locale: Locale;
   setLocale: (locale: Locale) => void;
@@ -18,6 +29,9 @@ interface SiteContextType {
 export const SiteContext = createContext<SiteContextType>({
   siteId: "",
   hasSite: false,
+  sites: [],
+  currentSite: null,
+  switchSite: () => {},
   membership: "free",
   locale: "en",
   setLocale: () => {},

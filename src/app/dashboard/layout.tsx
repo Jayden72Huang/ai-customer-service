@@ -18,10 +18,12 @@ import {
   Crown,
   Globe,
   Zap,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { SiteContext, createT } from "@/components/site-context";
+import type { SiteData } from "@/components/site-context";
 
 import type { MembershipTier } from "@/lib/types";
 import type { Locale } from "@/lib/i18n";
@@ -44,17 +46,28 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
-  const [siteId, setSiteId] = useState<string>("");
-  const [hasSite, setHasSite] = useState(false);
+  const [sites, setSites] = useState<SiteData[]>([]);
+  const [currentSiteId, setCurrentSiteId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [membership, setMembership] = useState<MembershipTier>("free");
   const [locale, setLocaleState] = useState<Locale>("en");
 
   const t = createT(locale);
+  const hasSite = sites.length > 0;
+  const currentSite = sites.find((s) => s.id === currentSiteId) || null;
 
   function handleSetLocale(newLocale: Locale) {
     setLocaleState(newLocale);
     setStoredLocale(newLocale);
+  }
+
+  function switchSite(siteId: string) {
+    setCurrentSiteId(siteId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("current_site_id", siteId);
+      const site = sites.find((s) => s.id === siteId);
+      if (site) localStorage.setItem("site_data", JSON.stringify(site));
+    }
   }
 
   async function loadSite() {
@@ -62,22 +75,26 @@ export default function DashboardLayout({
       const res = await fetch("/api/sites");
       if (res.ok) {
         const data = await res.json();
-        if (data.sites?.length > 0) {
-          const site = data.sites[0];
-          setSiteId(site.id);
-          setHasSite(true);
+        const allSites = (data.sites || []) as SiteData[];
+        setSites(allSites);
+
+        if (allSites.length > 0) {
+          // Restore previously selected site, or default to first
+          const stored = typeof window !== "undefined" ? localStorage.getItem("current_site_id") : null;
+          const validStored = stored && allSites.some((s) => s.id === stored);
+          const selectedId = validStored ? stored : allSites[0].id;
+          setCurrentSiteId(selectedId);
           if (typeof window !== "undefined") {
-            localStorage.setItem("current_site_id", site.id);
-            localStorage.setItem("site_data", JSON.stringify(site));
+            localStorage.setItem("current_site_id", selectedId);
+            const site = allSites.find((s) => s.id === selectedId);
+            if (site) localStorage.setItem("site_data", JSON.stringify(site));
           }
-        } else {
-          setHasSite(false);
         }
       }
     } catch {
       // ignore
     }
-    // Get membership from API (more reliable than session)
+    // Get membership from API
     try {
       const mRes = await fetch("/api/user/membership");
       if (mRes.ok) {
@@ -85,7 +102,6 @@ export default function DashboardLayout({
         setMembership(mData.membership || "free");
       }
     } catch {
-      // fallback to session
       const userMembership = (session?.user as Record<string, unknown> | undefined)?.membership;
       if (userMembership) setMembership(userMembership as MembershipTier);
     }
@@ -98,7 +114,20 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <SiteContext.Provider value={{ siteId, hasSite, membership, locale, setLocale: handleSetLocale, t, refreshSite: loadSite }}>
+    <SiteContext.Provider
+      value={{
+        siteId: currentSiteId,
+        hasSite,
+        sites,
+        currentSite,
+        switchSite,
+        membership,
+        locale,
+        setLocale: handleSetLocale,
+        t,
+        refreshSite: loadSite,
+      }}
+    >
       <div className="flex h-screen bg-background">
         {/* Sidebar */}
         <aside className="w-64 border-r border-border bg-card flex flex-col">
@@ -179,7 +208,6 @@ export default function DashboardLayout({
                 <LogOut className="w-4 h-4" />
                 {t("nav.signout")}
               </button>
-              {/* Language toggle */}
               <button
                 onClick={() => handleSetLocale(locale === "en" ? "zh" : "en")}
                 className="flex items-center gap-1.5 px-2.5 py-2.5 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -194,29 +222,67 @@ export default function DashboardLayout({
 
         {/* Main content */}
         <main className="flex-1 overflow-auto">
-          {/* Top bar */}
-          <div className="flex items-center justify-between px-8 py-4 border-b border-border">
-            <div>
-              {!loading && !hasSite && (
+          {/* Top bar: Agent switcher cards */}
+          <div className="px-8 py-4 border-b border-border">
+            {sites.length > 0 ? (
+              <div className="flex items-center gap-3 overflow-x-auto">
+                {sites.map((s) => {
+                  const isSelected = s.id === currentSiteId;
+                  const widgetColor = (s.settings?.widget_color as string) || "#2563eb";
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => switchSite(s.id)}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all flex-shrink-0 min-w-[200px]",
+                        isSelected
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-card hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: widgetColor + "20" }}
+                      >
+                        <Bot className="w-5 h-5" style={{ color: widgetColor }} />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-foreground text-sm truncate">
+                            {s.name}
+                          </p>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {s.domain ? s.domain.replace(/^https?:\/\//, "") : `key:${s.api_key.slice(0, 8)}...`}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => router.push("/dashboard?setup=new")}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/30 transition-all flex-shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm">{t("topbar.new_agent")}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-warning">
                   <Bot className="w-4 h-4" />
                   {t("topbar.no_agent")}
                 </div>
-              )}
-              {!loading && hasSite && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Bot className="w-4 h-4 text-success" />
-                  {t("topbar.agent_active")}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => router.push("/dashboard?setup=new")}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              {hasSite ? t("topbar.new_agent") : t("topbar.create_agent")}
-            </button>
+                <button
+                  onClick={() => router.push("/dashboard?setup=new")}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t("topbar.create_agent")}
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="p-8">{children}</div>

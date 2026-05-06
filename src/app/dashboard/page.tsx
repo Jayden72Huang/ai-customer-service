@@ -77,8 +77,11 @@ function DashboardContent() {
         const allSites = data.sites || [];
         setSites(allSites);
         if (allSites.length > 0) {
-          setSite(allSites[0]);
-          const statsRes = await fetch(`/api/insights?site_id=${allSites[0].id}`);
+          // Use stored selected site, or fallback to first
+          const stored = typeof window !== "undefined" ? localStorage.getItem("current_site_id") : null;
+          const selectedSite = (stored && allSites.find((s: Site) => s.id === stored)) || allSites[0];
+          setSite(selectedSite);
+          const statsRes = await fetch(`/api/insights?site_id=${selectedSite.id}`);
           if (statsRes.ok) {
             const statsData = await statsRes.json();
             setStats(statsData.stats);
@@ -382,41 +385,64 @@ function DashboardContent() {
           </div>
         ) : (
           <div className="space-y-3">
-            {sites.map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-4 bg-background border border-border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground text-sm">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {s.domain || "No domain configured"} · API Key: {s.api_key.slice(0, 8)}...
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={`/dashboard/settings`}
-                    className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                    title="Settings"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </a>
-                  {s.domain && (
-                    <a
-                      href={`https://${s.domain.replace(/^https?:\/\//, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                      title="Visit site"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+            {sites.map((s) => {
+              const isSelected = s.id === site?.id;
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => {
+                    setSite(s);
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem("current_site_id", s.id);
+                      localStorage.setItem("site_data", JSON.stringify(s));
+                    }
+                    // Reload stats for selected site
+                    fetch(`/api/insights?site_id=${s.id}`).then(r => r.json()).then(d => setStats(d.stats)).catch(() => {});
+                  }}
+                  className={cn(
+                    "flex items-center justify-between p-4 bg-background border-2 rounded-lg cursor-pointer transition-all",
+                    isSelected ? "border-primary" : "border-border hover:border-muted-foreground/30"
                   )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground text-sm">{s.name}</p>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {s.domain || "No domain configured"} · API Key: {s.api_key.slice(0, 8)}...
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href="/dashboard/settings"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                      title="Settings"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </a>
+                    {s.domain && (
+                      <a
+                        href={`https://${s.domain.replace(/^https?:\/\//, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Visit site"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
