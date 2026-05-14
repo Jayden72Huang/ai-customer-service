@@ -29,7 +29,7 @@ function getCurrentSiteId() {
 }
 
 export default function SeoPage() {
-  const { membership } = useSite();
+  const { membership, t } = useSite();
   const [articles, setArticles] = useState<SeoArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -77,7 +77,7 @@ export default function SeoPage() {
   }
 
   async function deleteArticle(id: string) {
-    if (!confirm("Delete this article?")) return;
+    if (!confirm(t("seo.delete_confirm"))) return;
     await fetch(`/api/seo?id=${id}`, { method: "DELETE" });
     if (selectedArticle?.id === id) setSelectedArticle(null);
     fetchArticles();
@@ -93,10 +93,9 @@ export default function SeoPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
         <Lock className="w-12 h-12 text-muted-foreground/30 mb-4" />
-        <h3 className="text-lg font-semibold text-foreground mb-2">Premium Feature</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">{t("seo.premium_feature")}</h3>
         <p className="text-sm text-muted-foreground max-w-md">
-          Upgrade to Premium to auto-generate SEO articles from your customer interactions.
-          AI analyzes what your customers ask and writes optimized content to drive organic traffic.
+          {t("seo.premium_gate_desc")}
         </p>
       </div>
     );
@@ -106,11 +105,11 @@ export default function SeoPage() {
     <div>
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-2xl font-bold text-foreground">SEO Articles</h2>
+          <h2 className="text-2xl font-bold text-foreground">{t("seo.title")}</h2>
           <Crown className="w-5 h-5 text-amber-400" />
         </div>
         <p className="text-muted-foreground text-sm">
-          Auto-generate SEO blog articles from customer interaction data
+          {t("seo.subtitle")}
         </p>
       </div>
 
@@ -118,9 +117,9 @@ export default function SeoPage() {
       <div className="bg-card border border-primary/30 rounded-xl p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-foreground">Generate New Article</h3>
+            <h3 className="font-semibold text-foreground">{t("seo.generate")}</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              AI identifies trending topics from customer conversations and writes an SEO-optimized article
+              {t("seo.generate_desc")}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -129,9 +128,9 @@ export default function SeoPage() {
               onChange={(e) => setGenDays(Number(e.target.value))}
               className="bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value={7}>Last 7 days</option>
-              <option value={14}>Last 14 days</option>
-              <option value={30}>Last 30 days</option>
+              <option value={7}>{t("seo.last_7d")}</option>
+              <option value={14}>{t("seo.last_14d")}</option>
+              <option value={30}>{t("seo.last_30d")}</option>
             </select>
             <button
               onClick={generateArticle}
@@ -139,7 +138,7 @@ export default function SeoPage() {
               className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              {generating ? "Generating..." : "Generate"}
+              {generating ? t("seo.generating") : t("seo.generate")}
             </button>
           </div>
         </div>
@@ -150,15 +149,15 @@ export default function SeoPage() {
         {/* Article List */}
         <div className="lg:col-span-1 space-y-3">
           <h3 className="text-sm font-medium text-muted-foreground mb-2">
-            {articles.length} Articles
+            {articles.length} {t("seo.articles")}
           </h3>
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">{t("seo.loading")}</p>
           ) : articles.length === 0 ? (
             <div className="bg-card border border-border rounded-xl p-8 text-center">
               <FileText className="w-8 h-8 mx-auto mb-3 text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">
-                No articles yet. Generate your first one!
+                {t("seo.no_articles")}
               </p>
             </div>
           ) : (
@@ -176,15 +175,15 @@ export default function SeoPage() {
                   {a.title}
                 </p>
                 <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <span>{a.word_count} words</span>
+                  <span>{a.word_count} {t("seo.words")}</span>
                   <span>·</span>
                   <span>{new Date(a.created_at).toLocaleDateString()}</span>
                 </div>
                 {a.topics?.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {a.topics.slice(0, 3).map((t, i) => (
+                    {a.topics.slice(0, 3).map((topic, i) => (
                       <span key={i} className="px-1.5 py-0.5 bg-muted rounded text-[10px] text-muted-foreground">
-                        {t}
+                        {topic}
                       </span>
                     ))}
                   </div>
@@ -204,7 +203,7 @@ export default function SeoPage() {
                     {selectedArticle.title}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    /{selectedArticle.slug} · {selectedArticle.word_count} words ·{" "}
+                    /{selectedArticle.slug} · {selectedArticle.word_count} {t("seo.words")} ·{" "}
                     {new Date(selectedArticle.created_at).toLocaleString()}
                   </p>
                 </div>
@@ -214,7 +213,7 @@ export default function SeoPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-muted text-foreground rounded-lg text-xs hover:bg-muted/80 transition-colors"
                   >
                     {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {copied ? "Copied" : "Copy MD"}
+                    {copied ? t("seo.copied") : t("seo.copy_md")}
                   </button>
                   <button
                     onClick={() => deleteArticle(selectedArticle.id)}
@@ -232,7 +231,7 @@ export default function SeoPage() {
             <div className="bg-card border border-border rounded-xl p-12 text-center">
               <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground/20" />
               <p className="text-sm text-muted-foreground">
-                Select an article to preview, or generate a new one
+                {t("seo.select_article")}
               </p>
             </div>
           )}

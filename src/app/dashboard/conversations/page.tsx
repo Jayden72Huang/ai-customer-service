@@ -8,6 +8,7 @@ import {
   Send,
   X,
 } from "lucide-react";
+import { useSite } from "@/components/site-context";
 
 interface Conversation {
   id: string;
@@ -29,20 +30,32 @@ interface Message {
   created_at: string;
 }
 
-const statusConfig: Record<string, { color: string; icon: React.ElementType; label: string }> = {
-  open: { color: "text-success", icon: MessageSquare, label: "Open" },
-  waiting_human: { color: "text-warning", icon: AlertTriangle, label: "Needs Human" },
-  resolved: { color: "text-muted-foreground", icon: CheckCircle, label: "Resolved" },
-  closed: { color: "text-muted-foreground", icon: X, label: "Closed" },
+function getStatusConfig(t: (key: string) => string) {
+  return {
+    open: { color: "text-success", icon: MessageSquare, label: t("conv.open") },
+    waiting_human: { color: "text-warning", icon: AlertTriangle, label: t("conv.needs_human") },
+    resolved: { color: "text-muted-foreground", icon: CheckCircle, label: t("conv.resolved") },
+    closed: { color: "text-muted-foreground", icon: X, label: t("conv.closed") },
+  } as Record<string, { color: string; icon: React.ElementType; label: string }>;
+}
+
+const filterKeys: Record<string, string> = {
+  all: "conv.all",
+  needs_human: "conv.needs_human",
+  open: "conv.open",
+  resolved: "conv.resolved",
 };
 
 export default function ConversationsPage() {
+  const { t } = useSite();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [reply, setReply] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+
+  const statusConfig = getStatusConfig(t);
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
@@ -115,7 +128,7 @@ export default function ConversationsPage() {
       {/* Conversation List */}
       <div className="w-96 flex flex-col">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-foreground mb-4">Conversations</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-4">{t("conv.title")}</h2>
           <div className="flex gap-2">
             {["all", "needs_human", "open", "resolved"].map((f) => (
               <button
@@ -127,11 +140,7 @@ export default function ConversationsPage() {
                     : "bg-muted text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {f === "all"
-                  ? "All"
-                  : f === "needs_human"
-                  ? "Needs Human"
-                  : f.charAt(0).toUpperCase() + f.slice(1)}
+                {t(filterKeys[f])}
               </button>
             ))}
           </div>
@@ -139,9 +148,9 @@ export default function ConversationsPage() {
 
         <div className="flex-1 overflow-auto space-y-2">
           {loading ? (
-            <p className="text-muted-foreground text-sm p-4">Loading...</p>
+            <p className="text-muted-foreground text-sm p-4">{t("conv.loading")}</p>
           ) : conversations.length === 0 ? (
-            <p className="text-muted-foreground text-sm p-4">No conversations yet</p>
+            <p className="text-muted-foreground text-sm p-4">{t("conv.no_conversations")}</p>
           ) : (
             conversations.map((conv) => {
               const cfg = statusConfig[conv.status] || statusConfig.open;
@@ -192,7 +201,7 @@ export default function ConversationsPage() {
                   {selected.visitor_email || selected.visitor_id}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {selected.category?.replace(/_/g, " ")} · {selected.priority} priority
+                  {selected.category?.replace(/_/g, " ")} · {selected.priority} {t("conv.priority")}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -202,7 +211,7 @@ export default function ConversationsPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-success/20 text-success rounded-lg text-xs font-medium hover:bg-success/30 transition-colors"
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
-                    Resolve
+                    {t("conv.resolve")}
                   </button>
                 )}
               </div>
@@ -228,7 +237,7 @@ export default function ConversationsPage() {
                   >
                     {msg.role === "admin" && (
                       <span className="text-xs text-success font-medium block mb-1">
-                        Admin
+                        {t("conv.admin")}
                       </span>
                     )}
                     {msg.content}
@@ -247,7 +256,7 @@ export default function ConversationsPage() {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendReply()}
-                  placeholder="Type admin reply..."
+                  placeholder={t("conv.reply_placeholder")}
                   className="flex-1 bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <button
@@ -264,7 +273,7 @@ export default function ConversationsPage() {
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
             <div className="text-center">
               <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p>Select a conversation to view details</p>
+              <p>{t("conv.select")}</p>
             </div>
           </div>
         )}

@@ -14,6 +14,7 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
+import { useSite } from "@/components/site-context";
 
 interface KnowledgeEntry {
   id: string;
@@ -45,6 +46,7 @@ interface KnowledgeDoc {
 }
 
 export default function KnowledgePage() {
+  const { t } = useSite();
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -112,7 +114,7 @@ export default function KnowledgePage() {
   }
 
   async function deleteEntry(id: string) {
-    if (!confirm("Delete this entry?")) return;
+    if (!confirm(t("knowledge.delete_entry"))) return;
     await fetch(`/api/knowledge?id=${id}`, { method: "DELETE" });
     fetchEntries();
   }
@@ -175,7 +177,7 @@ export default function KnowledgePage() {
 
   async function handlePasteImport() {
     if (!pasteText.trim() || pasteText.length < 50) {
-      setImportError("Please paste at least 50 characters of content.");
+      setImportError(t("knowledge.paste_min"));
       return;
     }
     setUrlImporting(true);
@@ -270,9 +272,9 @@ export default function KnowledgePage() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground">Knowledge Base</h2>
+        <h2 className="text-2xl font-bold text-foreground">{t("knowledge.title")}</h2>
         <p className="text-muted-foreground mt-1">
-          {entries.length} entries · Teach your AI how to answer
+          {entries.length} {t("knowledge.entries")} · {t("knowledge.teach")}
         </p>
       </div>
 
@@ -283,7 +285,7 @@ export default function KnowledgePage() {
           className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add Entry
+          {t("knowledge.add_entry")}
         </button>
         <button
           onClick={() => fileRef.current?.click()}
@@ -291,7 +293,7 @@ export default function KnowledgePage() {
           className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
         >
           <Upload className="w-4 h-4" />
-          {importing ? "Importing..." : "Upload CSV"}
+          {importing ? t("knowledge.importing") : t("knowledge.upload_csv")}
         </button>
         <input ref={fileRef} type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
         <button
@@ -301,7 +303,7 @@ export default function KnowledgePage() {
           }`}
         >
           <Globe className="w-4 h-4" />
-          Import URL
+          {t("knowledge.import_url")}
         </button>
         <button
           onClick={() => setImportTab(importTab === "paste" ? null : "paste")}
@@ -310,7 +312,7 @@ export default function KnowledgePage() {
           }`}
         >
           <FileText className="w-4 h-4" />
-          Paste Text
+          {t("knowledge.paste_text")}
         </button>
         <button
           onClick={() => mdRef.current?.click()}
@@ -318,7 +320,7 @@ export default function KnowledgePage() {
           className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors"
         >
           <FileText className="w-4 h-4" />
-          {importing ? "Uploading..." : "Upload MD/TXT"}
+          {importing ? t("knowledge.uploading") : t("knowledge.upload_md")}
         </button>
         <input ref={mdRef} type="file" accept=".md,.txt,.markdown" onChange={handleMdUpload} className="hidden" />
       </div>
@@ -332,7 +334,7 @@ export default function KnowledgePage() {
               <div>
                 <p className="font-medium text-foreground text-sm">{latestDoc.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  v{latestDoc.version} · {latestDoc.source === "auto_evolved" ? "Auto-evolved" : "Uploaded"} · {new Date(latestDoc.created_at).toLocaleDateString()}
+                  v{latestDoc.version} · {latestDoc.source === "auto_evolved" ? t("knowledge.doc_auto_evolved") : t("knowledge.doc_uploaded")} · {new Date(latestDoc.created_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -340,7 +342,7 @@ export default function KnowledgePage() {
               <button
                 onClick={() => setConfirmDeleteDoc(true)}
                 className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-muted"
-                title="Delete document"
+                title={t("knowledge.delete_doc")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -348,7 +350,7 @@ export default function KnowledgePage() {
                 onClick={() => setShowDoc(!showDoc)}
                 className="px-3 py-1.5 bg-muted text-foreground rounded-lg text-xs hover:bg-muted/80 transition-colors"
               >
-                {showDoc ? "Hide" : "View"}
+                {showDoc ? t("knowledge.doc_hide") : t("knowledge.doc_view")}
               </button>
               <button
                 onClick={handleEvolve}
@@ -356,7 +358,7 @@ export default function KnowledgePage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {evolving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                {evolving ? "Evolving..." : "Evolve Now"}
+                {evolving ? t("knowledge.evolving") : t("knowledge.evolve")}
               </button>
             </div>
           </div>
@@ -373,12 +375,12 @@ export default function KnowledgePage() {
           {docs.length > 1 && (
             <details className="mt-3">
               <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                Version history ({docs.length} versions)
+                {t("knowledge.doc_version_history")} ({docs.length} {t("knowledge.doc_versions")})
               </summary>
               <div className="mt-2 space-y-1">
                 {docs.map((d) => (
                   <div key={d.id} className="flex items-center justify-between text-xs text-muted-foreground py-1">
-                    <span>v{d.version} — {d.source === "auto_evolved" ? "Auto-evolved" : "Uploaded"}</span>
+                    <span>v{d.version} — {d.source === "auto_evolved" ? t("knowledge.doc_auto_evolved") : t("knowledge.doc_uploaded")}</span>
                     <span>{new Date(d.created_at).toLocaleString()}</span>
                   </div>
                 ))}
@@ -392,22 +394,22 @@ export default function KnowledgePage() {
       {confirmDeleteDoc && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card border border-border rounded-xl p-6 max-w-sm mx-4 shadow-lg">
-            <h3 className="font-semibold text-foreground mb-2">Delete Document</h3>
+            <h3 className="font-semibold text-foreground mb-2">{t("knowledge.delete_doc")}</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Are you sure you want to delete this document and all its versions? This action cannot be undone.
+              {t("knowledge.delete_doc_confirm")}
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setConfirmDeleteDoc(false)}
                 className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Cancel
+                {t("knowledge.cancel")}
               </button>
               <button
                 onClick={deleteDoc}
                 className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors"
               >
-                Delete
+                {t("knowledge.delete")}
               </button>
             </div>
           </div>
@@ -419,17 +421,17 @@ export default function KnowledgePage() {
         <div className="bg-card border border-primary/30 rounded-xl p-6 mb-6">
           {importTab === "url" ? (
             <>
-              <h3 className="font-semibold text-foreground mb-2">Import from URL</h3>
+              <h3 className="font-semibold text-foreground mb-2">{t("knowledge.import_from_url")}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Paste a public webpage URL. AI will extract Q&A pairs automatically.
+                {t("knowledge.import_url_desc")}
                 <br />
-                <span className="text-xs text-warning">Note: Private docs (Feishu, Notion) require the link to be set to &quot;Anyone with link can view&quot;. If it fails, use &quot;Paste Text&quot; instead.</span>
+                <span className="text-xs text-warning">{t("knowledge.import_url_note")}</span>
               </p>
               <div className="flex gap-2">
                 <input
                   value={importUrl}
                   onChange={(e) => { setImportUrl(e.target.value); setImportError(""); }}
-                  placeholder="https://docs.google.com/document/d/... or any public URL"
+                  placeholder={t("knowledge.import_url_placeholder")}
                   className="flex-1 bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
                 <button
@@ -438,20 +440,20 @@ export default function KnowledgePage() {
                   className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {urlImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                  {urlImporting ? "Extracting..." : "Import"}
+                  {urlImporting ? t("knowledge.extracting") : t("knowledge.import")}
                 </button>
               </div>
             </>
           ) : (
             <>
-              <h3 className="font-semibold text-foreground mb-2">Paste Document Content</h3>
+              <h3 className="font-semibold text-foreground mb-2">{t("knowledge.paste_doc")}</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Copy the content from your document (Feishu, Notion, Google Docs, etc.) and paste it here. AI will extract Q&A pairs.
+                {t("knowledge.paste_doc_desc")}
               </p>
               <textarea
                 value={pasteText}
                 onChange={(e) => { setPasteText(e.target.value); setImportError(""); }}
-                placeholder="Paste your FAQ content, product documentation, help center articles, or any text here..."
+                placeholder={t("knowledge.paste_placeholder")}
                 rows={8}
                 className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none mb-3"
               />
@@ -461,7 +463,7 @@ export default function KnowledgePage() {
                 className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {urlImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                {urlImporting ? "Extracting Q&A..." : "Extract Q&A Pairs"}
+                {urlImporting ? t("knowledge.extracting_qa") : t("knowledge.extract_qa")}
               </button>
             </>
           )}
@@ -470,7 +472,7 @@ export default function KnowledgePage() {
           )}
           <div className="flex justify-end mt-3">
             <button onClick={() => { setImportTab(null); setImportError(""); }} className="text-sm text-muted-foreground hover:text-foreground">
-              Cancel
+              {t("knowledge.cancel")}
             </button>
           </div>
         </div>
@@ -482,7 +484,7 @@ export default function KnowledgePage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search knowledge base..."
+          placeholder={t("knowledge.search")}
           className="w-full bg-card border border-border rounded-lg pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
@@ -490,33 +492,33 @@ export default function KnowledgePage() {
       {/* Add New Entry Form */}
       {showAdd && (
         <div className="bg-card border border-primary/30 rounded-xl p-6 mb-6">
-          <h3 className="font-semibold text-foreground mb-4">New Entry</h3>
+          <h3 className="font-semibold text-foreground mb-4">{t("knowledge.new_entry")}</h3>
           <div className="space-y-3">
             <input
               value={newEntry.question}
               onChange={(e) => setNewEntry((p) => ({ ...p, question: e.target.value }))}
-              placeholder="Question"
+              placeholder={t("knowledge.question")}
               className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <textarea
               value={newEntry.answer}
               onChange={(e) => setNewEntry((p) => ({ ...p, answer: e.target.value }))}
-              placeholder="Answer"
+              placeholder={t("knowledge.answer")}
               rows={3}
               className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
             />
             <input
               value={newEntry.category}
               onChange={(e) => setNewEntry((p) => ({ ...p, category: e.target.value }))}
-              placeholder="Category (e.g. billing, technical)"
+              placeholder={t("knowledge.category_placeholder")}
               className="w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <div className="flex gap-2 justify-end">
               <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Cancel
+                {t("knowledge.cancel")}
               </button>
               <button onClick={addEntry} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition-colors">
-                Save
+                {t("knowledge.save")}
               </button>
             </div>
           </div>
@@ -530,8 +532,8 @@ export default function KnowledgePage() {
             <BookOpen className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
             <p className="text-muted-foreground">
               {entries.length === 0
-                ? "No knowledge entries yet. Add your first one or import a CSV."
-                : "No entries match your search."}
+                ? t("knowledge.no_entries")
+                : t("knowledge.no_match")}
             </p>
           </div>
         ) : (
@@ -567,9 +569,9 @@ export default function KnowledgePage() {
                     <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
                       <span className="px-2 py-0.5 bg-muted rounded-md capitalize">{entry.category}</span>
                       <span className="px-2 py-0.5 bg-muted rounded-md">
-                        {entry.source === "csv_import" ? "CSV" : entry.source === "auto_learned" ? "Learned" : "Manual"}
+                        {entry.source === "csv_import" ? t("knowledge.source_csv") : entry.source === "auto_learned" ? t("knowledge.source_learned") : t("knowledge.source_manual")}
                       </span>
-                      <span>Used {entry.usage_count}x</span>
+                      <span>{t("knowledge.used")} {entry.usage_count}x</span>
                     </div>
                   </div>
                   <div className="flex gap-1 ml-4">

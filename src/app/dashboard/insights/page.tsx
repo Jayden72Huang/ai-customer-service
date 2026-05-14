@@ -14,6 +14,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { useSite } from "@/components/site-context";
 
 interface Suggestion {
   id: string;
@@ -104,6 +105,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 const IMPACT_COLORS = PRIORITY_COLORS;
 
 export default function InsightsPage() {
+  const { t } = useSite();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -179,7 +181,7 @@ export default function InsightsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading insights...</p>
+        <p className="text-muted-foreground">{t("insights.loading")}</p>
       </div>
     );
   }
@@ -187,9 +189,9 @@ export default function InsightsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">AI Insights</h2>
+        <h2 className="text-2xl font-bold text-foreground">{t("insights.title")}</h2>
         <p className="text-muted-foreground mt-1">
-          Review learning suggestions, performance metrics, and AI-generated reports
+          {t("insights.subtitle")}
         </p>
       </div>
 
@@ -199,17 +201,17 @@ export default function InsightsPage() {
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Escalation Rate</span>
+              <span className="text-sm text-muted-foreground">{t("insights.escalation_rate")}</span>
             </div>
             <p className="text-2xl font-bold text-foreground">{stats.escalation_rate}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.escalated} of {stats.total_conversations} conversations
+              {stats.escalated} {t("insights.of_conversations").replace("{0}", String(stats.total_conversations))}
             </p>
           </div>
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-2 mb-2">
               <Brain className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">AI Resolution</span>
+              <span className="text-sm text-muted-foreground">{t("insights.ai_resolution")}</span>
             </div>
             <p className="text-2xl font-bold text-foreground">
               {stats.total_conversations > 0
@@ -221,17 +223,17 @@ export default function InsightsPage() {
                 : "—"}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              Handled without human intervention
+              {t("insights.ai_resolution_desc")}
             </p>
           </div>
           <div className="bg-card border border-border rounded-xl p-6">
             <div className="flex items-center gap-2 mb-2">
               <Lightbulb className="w-4 h-4 text-warning" />
-              <span className="text-sm text-muted-foreground">Pending Suggestions</span>
+              <span className="text-sm text-muted-foreground">{t("insights.pending")}</span>
             </div>
             <p className="text-2xl font-bold text-foreground">{suggestions.length}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Waiting for your review
+              {t("insights.pending_desc")}
             </p>
           </div>
         </div>
@@ -243,9 +245,9 @@ export default function InsightsPage() {
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5 text-primary" />
             <div>
-              <h3 className="font-semibold text-foreground">AI Analysis Report</h3>
+              <h3 className="font-semibold text-foreground">{t("insights.report")}</h3>
               <p className="text-sm text-muted-foreground">
-                AI analyzes customer interactions to find patterns, gaps, and improvements
+                {t("insights.report_desc")}
               </p>
             </div>
           </div>
@@ -255,10 +257,10 @@ export default function InsightsPage() {
               onChange={(e) => setReportDays(Number(e.target.value))}
               className="bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value={1}>Last 24 hours</option>
-              <option value={3}>Last 3 days</option>
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
+              <option value={1}>{t("insights.last_24h")}</option>
+              <option value={3}>{t("insights.last_3d")}</option>
+              <option value={7}>{t("insights.last_7d")}</option>
+              <option value={30}>{t("insights.last_30d")}</option>
             </select>
             <button
               onClick={generateReport}
@@ -270,7 +272,7 @@ export default function InsightsPage() {
               ) : (
                 <FileText className="w-4 h-4" />
               )}
-              {reportLoading ? "Analyzing..." : "Generate Report"}
+              {reportLoading ? t("insights.analyzing") : t("insights.generate")}
             </button>
           </div>
         </div>
@@ -300,7 +302,7 @@ export default function InsightsPage() {
                   onClick={() => toggleSection("sentiment")}
                   className="flex items-center justify-between w-full text-left"
                 >
-                  <span className="font-medium text-sm text-foreground">Sentiment Overview</span>
+                  <span className="font-medium text-sm text-foreground">{t("insights.sentiment")}</span>
                   {expandedSections.sentiment ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
                   ) : (
@@ -314,19 +316,19 @@ export default function InsightsPage() {
                         <span className="text-success font-medium">
                           {report.sentiment_overview.positive}
                         </span>{" "}
-                        positive
+                        {t("insights.positive")}
                       </span>
                       <span className="text-sm">
                         <span className="text-muted-foreground font-medium">
                           {report.sentiment_overview.neutral}
                         </span>{" "}
-                        neutral
+                        {t("insights.neutral")}
                       </span>
                       <span className="text-sm">
                         <span className="text-destructive font-medium">
                           {report.sentiment_overview.negative}
                         </span>{" "}
-                        negative
+                        {t("insights.negative")}
                       </span>
                     </div>
                     {/* Sentiment bar */}
@@ -379,7 +381,7 @@ export default function InsightsPage() {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium text-sm text-foreground">
-                    Top Questions ({report.top_questions.length})
+                    {t("insights.top_questions")} ({report.top_questions.length})
                   </span>
                   {expandedSections.top_questions ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -425,7 +427,7 @@ export default function InsightsPage() {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium text-sm text-foreground">
-                    Category Analysis
+                    {t("insights.category_analysis")}
                   </span>
                   {expandedSections.categories ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -443,7 +445,7 @@ export default function InsightsPage() {
                               {c.category}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {c.count} interactions
+                              {c.count} {t("insights.interactions")}
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -469,7 +471,7 @@ export default function InsightsPage() {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium text-sm text-foreground">
-                    Escalation Analysis
+                    {t("insights.escalation_analysis")}
                   </span>
                   {expandedSections.escalation ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -480,11 +482,11 @@ export default function InsightsPage() {
                 {expandedSections.escalation && (
                   <div className="mt-3">
                     <p className="text-sm text-foreground mb-2">
-                      {report.escalation_analysis.total} escalated conversations
+                      {report.escalation_analysis.total} {t("insights.escalated_conversations")}
                     </p>
                     {report.escalation_analysis.common_reasons?.length > 0 && (
                       <div className="mb-2">
-                        <p className="text-xs text-muted-foreground mb-1">Common reasons:</p>
+                        <p className="text-xs text-muted-foreground mb-1">{t("insights.common_reasons")}</p>
                         <ul className="list-disc list-inside text-xs text-muted-foreground space-y-0.5">
                           {report.escalation_analysis.common_reasons.map((r, i) => (
                             <li key={i}>{r}</li>
@@ -508,7 +510,7 @@ export default function InsightsPage() {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium text-sm text-foreground">
-                    Knowledge Gaps ({report.knowledge_gaps.length})
+                    {t("insights.knowledge_gaps")} ({report.knowledge_gaps.length})
                   </span>
                   {expandedSections.gaps ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -548,7 +550,7 @@ export default function InsightsPage() {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium text-sm text-foreground">
-                    Improvement Suggestions
+                    {t("insights.improvement_suggestions")}
                   </span>
                   {expandedSections.improvements ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -569,7 +571,7 @@ export default function InsightsPage() {
                               IMPACT_COLORS[s.impact] || IMPACT_COLORS.low
                             }`}
                           >
-                            {s.impact} impact
+                            {s.impact} {t("insights.impact")}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">{s.description}</p>
@@ -588,7 +590,7 @@ export default function InsightsPage() {
                   className="flex items-center justify-between w-full text-left"
                 >
                   <span className="font-medium text-sm text-foreground">
-                    Auto-generated Knowledge Suggestions ({report.auto_suggestions.length})
+                    {t("insights.auto_suggestions")} ({report.auto_suggestions.length})
                   </span>
                   {expandedSections.auto_suggestions ? (
                     <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -599,7 +601,7 @@ export default function InsightsPage() {
                 {expandedSections.auto_suggestions && (
                   <div className="mt-3 space-y-3">
                     <p className="text-xs text-muted-foreground">
-                      These have been added to Pending Suggestions above. Review and approve to add them to your knowledge base.
+                      {t("insights.auto_suggestions_desc")}
                     </p>
                     {report.auto_suggestions.map((s, i) => (
                       <div key={i} className="py-2 border-b border-border last:border-0">
@@ -618,9 +620,9 @@ export default function InsightsPage() {
 
       {/* Learning Suggestions */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Learning Suggestions</h3>
+        <h3 className="text-lg font-semibold text-foreground">{t("insights.learning_suggestions")}</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Auto-generated from analysis reports and frequently asked questions. Approve to add to your knowledge base.
+          {t("insights.learning_desc")}
         </p>
       </div>
 
@@ -628,7 +630,7 @@ export default function InsightsPage() {
         <div className="bg-card border border-border rounded-xl p-12 text-center">
           <Brain className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
           <p className="text-muted-foreground">
-            No pending suggestions. Generate a report above to discover new knowledge entries from customer interactions.
+            {t("insights.no_suggestions")}
           </p>
         </div>
       ) : (
@@ -642,7 +644,7 @@ export default function InsightsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="px-2 py-0.5 bg-warning/20 text-warning rounded-md text-xs font-medium">
-                      Asked {s.frequency}x
+                      {t("insights.asked")} {s.frequency}x
                     </span>
                   </div>
                   <p className="font-medium text-foreground text-sm">

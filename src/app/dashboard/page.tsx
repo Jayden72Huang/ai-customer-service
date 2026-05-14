@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Settings,
 } from "lucide-react";
+import { useSite } from "@/components/site-context";
 
 interface Stats {
   total_conversations: number;
@@ -51,6 +52,7 @@ export default function DashboardPage() {
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useSite();
   const [stats, setStats] = useState<Stats | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [site, setSite] = useState<Site | null>(null);
@@ -77,7 +79,6 @@ function DashboardContent() {
         const allSites = data.sites || [];
         setSites(allSites);
         if (allSites.length > 0) {
-          // Use stored selected site, or fallback to first
           const stored = typeof window !== "undefined" ? localStorage.getItem("current_site_id") : null;
           const selectedSite = (stored && allSites.find((s: Site) => s.id === stored)) || allSites[0];
           setSite(selectedSite);
@@ -87,7 +88,6 @@ function DashboardContent() {
             setStats(statsData.stats);
           }
         } else {
-          // No sites: auto-show setup
           setShowSetup(true);
         }
       }
@@ -99,7 +99,6 @@ function DashboardContent() {
     fetchSites();
   }, [fetchSites]);
 
-  // Handle ?setup=new query param
   useEffect(() => {
     if (searchParams.get("setup") === "new") {
       setShowSetup(true);
@@ -108,7 +107,6 @@ function DashboardContent() {
       setSiteName("");
       setDomain("");
       setEmail("");
-      // Clean up URL
       router.replace("/dashboard");
     }
   }, [searchParams, router]);
@@ -160,7 +158,7 @@ function DashboardContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-muted-foreground">{t("conv.loading")}</p>
       </div>
     );
   }
@@ -169,18 +167,18 @@ function DashboardContent() {
   if (showSetup || newSite) {
     const activeSite = newSite;
     const steps: { id: SetupStep; label: string; icon: React.ElementType }[] = [
-      { id: "create", label: "Create Site", icon: Globe },
-      { id: "knowledge", label: "Knowledge", icon: BookOpen },
-      { id: "notification", label: "Notifications", icon: Mail },
-      { id: "embed", label: "Go Live", icon: Code },
+      { id: "create", label: t("setup.step_create"), icon: Globe },
+      { id: "knowledge", label: t("setup.step_knowledge"), icon: BookOpen },
+      { id: "notification", label: t("setup.step_notification"), icon: Mail },
+      { id: "embed", label: t("setup.step_embed"), icon: Code },
     ];
     const currentIdx = steps.findIndex((s) => s.id === setupStep);
 
     return (
       <div className="max-w-xl mx-auto">
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-foreground">Welcome! Let&apos;s set up your AI customer service</h2>
-          <p className="text-muted-foreground mt-1">This takes about 2 minutes.</p>
+          <h2 className="text-2xl font-bold text-foreground">{t("setup.welcome")}</h2>
+          <p className="text-muted-foreground mt-1">{t("setup.takes_2min")}</p>
         </div>
 
         {/* Progress */}
@@ -210,29 +208,29 @@ function DashboardContent() {
         {/* Step 1: Create Site */}
         {setupStep === "create" && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h3 className="font-semibold text-foreground">Site Details</h3>
+            <h3 className="font-semibold text-foreground">{t("setup.site_details")}</h3>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Site Name *</label>
-              <input value={siteName} onChange={(e) => setSiteName(e.target.value)} placeholder="My Company"
+              <label className="block text-sm text-muted-foreground mb-1">{t("setup.site_name")}</label>
+              <input value={siteName} onChange={(e) => setSiteName(e.target.value)} placeholder={t("setup.site_name_placeholder")}
                 className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Domain (your website)</label>
-              <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="www.example.com"
+              <label className="block text-sm text-muted-foreground mb-1">{t("setup.domain")}</label>
+              <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder={t("setup.domain_placeholder")}
                 className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-              <p className="text-xs text-muted-foreground mt-1">The embed code will use this domain</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("setup.domain_desc")}</p>
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">AI Model</label>
+              <label className="block text-sm text-muted-foreground mb-1">{t("setup.ai_model")}</label>
               <select value={aiProvider} onChange={(e) => setAiProvider(e.target.value)}
                 className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
-                <option value="deepseek">DeepSeek (Cost-effective)</option>
-                <option value="anthropic">Claude (Higher quality)</option>
+                <option value="deepseek">{t("setup.deepseek")}</option>
+                <option value="anthropic">{t("setup.claude")}</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">Theme Color</label>
+                <label className="block text-sm text-muted-foreground mb-1">{t("setup.theme_color")}</label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
                     className="w-10 h-10 rounded-lg border border-border cursor-pointer" />
@@ -240,20 +238,20 @@ function DashboardContent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">Welcome Message</label>
+                <label className="block text-sm text-muted-foreground mb-1">{t("setup.welcome_msg")}</label>
                 <input value={welcomeMsg} onChange={(e) => setWelcomeMsg(e.target.value)}
                   className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
               </div>
             </div>
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">Notification Email</label>
+              <label className="block text-sm text-muted-foreground mb-1">{t("setup.notification_email")}</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="support@example.com"
                 className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-              <p className="text-xs text-muted-foreground mt-1">Receive alerts when AI escalates to human support</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("setup.notification_desc")}</p>
             </div>
             <button onClick={createSite} disabled={!siteName || creating}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
-              {creating ? "Creating..." : "Create Site"} <ArrowRight className="w-4 h-4" />
+              {creating ? t("setup.creating") : t("setup.create_site")} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -261,13 +259,13 @@ function DashboardContent() {
         {/* Step 2: Knowledge */}
         {setupStep === "knowledge" && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h3 className="font-semibold text-foreground">Add Knowledge Base</h3>
-            <p className="text-sm text-muted-foreground">Upload a CSV or paste a URL to your docs. You can also skip and add later.</p>
+            <h3 className="font-semibold text-foreground">{t("setup.add_knowledge")}</h3>
+            <p className="text-sm text-muted-foreground">{t("setup.knowledge_desc")}</p>
             <div className="bg-background border border-border border-dashed rounded-xl p-6 text-center">
               <BookOpen className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground mb-3">CSV format: question, answer, category</p>
+              <p className="text-sm text-muted-foreground mb-3">{t("setup.csv_format")}</p>
               <label className="inline-flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg text-sm cursor-pointer hover:bg-muted/80 transition-colors">
-                Upload CSV
+                {t("setup.upload_csv")}
                 <input type="file" accept=".csv" className="hidden" onChange={async (e) => {
                   const file = e.target.files?.[0];
                   const siteId = activeSite?.id;
@@ -293,11 +291,11 @@ function DashboardContent() {
             <div className="flex gap-3">
               <button onClick={() => setSetupStep("notification")}
                 className="flex-1 px-4 py-2.5 bg-muted text-muted-foreground rounded-lg text-sm hover:bg-muted/80 transition-colors">
-                Skip
+                {t("setup.skip")}
               </button>
               <button onClick={() => setSetupStep("notification")}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-                Continue <ArrowRight className="w-4 h-4" />
+                {t("setup.continue")} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -306,12 +304,12 @@ function DashboardContent() {
         {/* Step 3: Notification */}
         {setupStep === "notification" && (
           <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h3 className="font-semibold text-foreground">Notification Settings</h3>
-            <p className="text-sm text-muted-foreground">How should we reach you when AI needs human help?</p>
+            <h3 className="font-semibold text-foreground">{t("setup.notification_title")}</h3>
+            <p className="text-sm text-muted-foreground">{t("setup.notification_subtitle")}</p>
             {email ? (
               <div className="flex items-center gap-2 p-3 bg-success/10 border border-success/20 rounded-lg text-sm text-success">
                 <Check className="w-4 h-4" />
-                Notifications will be sent to: {email}
+                {t("setup.notification_set")} {email}
               </div>
             ) : (
               <div>
@@ -321,14 +319,14 @@ function DashboardContent() {
             )}
             <button onClick={() => setSetupStep("embed")}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-              Continue <ArrowRight className="w-4 h-4" />
+              {t("setup.continue")} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {/* Step 4: Install Guide */}
         {setupStep === "embed" && activeSite && (
-          <InstallGuide site={activeSite} onCopy={copyEmbed} copied={copied} onDone={() => { setNewSite(null); setShowSetup(false); fetchSites(); }} />
+          <InstallGuide site={activeSite} onCopy={copyEmbed} copied={copied} onDone={() => { setNewSite(null); setShowSetup(false); fetchSites(); }} t={t} />
         )}
       </div>
     );
@@ -336,17 +334,17 @@ function DashboardContent() {
 
   // ===== HAS SITE: Show Dashboard =====
   const cards = [
-    { label: "Total Conversations", value: stats?.total_conversations ?? "—", icon: MessageSquare, color: "text-primary" },
-    { label: "Needs Human", value: stats?.escalated ?? "—", icon: AlertTriangle, color: "text-warning" },
-    { label: "Escalation Rate", value: stats?.escalation_rate ?? "—", icon: TrendingUp, color: "text-success" },
-    { label: "Total Messages", value: stats?.total_messages ?? "—", icon: BookOpen, color: "text-muted-foreground" },
+    { label: t("dash.total_conversations"), value: stats?.total_conversations ?? "—", icon: MessageSquare, color: "text-primary" },
+    { label: t("dash.needs_human"), value: stats?.escalated ?? "—", icon: AlertTriangle, color: "text-warning" },
+    { label: t("dash.escalation_rate"), value: stats?.escalation_rate ?? "—", icon: TrendingUp, color: "text-success" },
+    { label: t("dash.total_messages"), value: stats?.total_messages ?? "—", icon: BookOpen, color: "text-muted-foreground" },
   ];
 
   return (
     <div>
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-        <p className="text-muted-foreground mt-1">Overview of your AI customer service performance</p>
+        <h2 className="text-2xl font-bold text-foreground">{t("dash.title")}</h2>
+        <p className="text-muted-foreground mt-1">{t("dash.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -364,23 +362,23 @@ function DashboardContent() {
       {/* Your AI Agents */}
       <div className="bg-card border border-border rounded-xl p-6 mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">Your AI Agents</h3>
+          <h3 className="text-lg font-semibold text-foreground">{t("dash.your_agents")}</h3>
           <button
             onClick={() => { setShowSetup(true); setSetupStep("create"); setNewSite(null); setSiteName(""); setDomain(""); setEmail(""); }}
             className="text-xs text-primary hover:underline"
           >
-            + Add New
+            {t("dash.add_new")}
           </button>
         </div>
         {sites.length === 0 ? (
           <div className="text-center py-8">
             <Bot className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-30" />
-            <p className="text-muted-foreground text-sm mb-4">No AI agents yet</p>
+            <p className="text-muted-foreground text-sm mb-4">{t("dash.no_agents")}</p>
             <button
               onClick={() => { setShowSetup(true); setSetupStep("create"); }}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
             >
-              Create Your First AI Agent
+              {t("dash.create_first")}
             </button>
           </div>
         ) : (
@@ -396,7 +394,6 @@ function DashboardContent() {
                       localStorage.setItem("current_site_id", s.id);
                       localStorage.setItem("site_data", JSON.stringify(s));
                     }
-                    // Reload stats for selected site
                     fetch(`/api/insights?site_id=${s.id}`).then(r => r.json()).then(d => setStats(d.stats)).catch(() => {});
                   }}
                   className={cn(
@@ -414,7 +411,7 @@ function DashboardContent() {
                         {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {s.domain || "No domain configured"} · API Key: {s.api_key.slice(0, 8)}...
+                        {s.domain || t("dash.no_domain")} · API Key: {s.api_key.slice(0, 8)}...
                       </p>
                     </div>
                   </div>
@@ -423,7 +420,7 @@ function DashboardContent() {
                       href="/dashboard/settings"
                       onClick={(e) => e.stopPropagation()}
                       className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                      title="Settings"
+                      title={t("nav.settings")}
                     >
                       <Settings className="w-4 h-4" />
                     </a>
@@ -434,7 +431,6 @@ function DashboardContent() {
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-                        title="Visit site"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </a>
@@ -449,7 +445,7 @@ function DashboardContent() {
 
       {stats?.category_breakdown && Object.keys(stats.category_breakdown).length > 0 && (
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Question Categories</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">{t("dash.question_categories")}</h3>
           <div className="space-y-3">
             {Object.entries(stats.category_breakdown)
               .sort(([, a], [, b]) => b - a)
@@ -478,11 +474,12 @@ function DashboardContent() {
 // ===== Install Guide Component =====
 type InstallMethod = "nextjs" | "wordpress" | "shopify" | "html" | "gtm" | "claude-code" | null;
 
-function InstallGuide({ site, onCopy, copied, onDone }: {
-  site: Site;
+function InstallGuide({ site, onCopy, copied, onDone, t }: {
+  site: { id: string; name: string; domain: string; api_key: string; settings: Record<string, unknown> };
   onCopy: () => void;
   copied: boolean;
   onDone: () => void;
+  t: (key: string) => string;
 }) {
   const [method, setMethod] = useState<InstallMethod>(null);
   const [verifyUrl, setVerifyUrl] = useState(site.domain || "");
@@ -569,9 +566,9 @@ function InstallGuide({ site, onCopy, copied, onDone }: {
       <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mx-auto">
         <Check className="w-6 h-6 text-success" />
       </div>
-      <h3 className="font-semibold text-foreground text-center text-lg">Install AI Chat Widget</h3>
+      <h3 className="font-semibold text-foreground text-center text-lg">{t("setup.install_title")}</h3>
       <p className="text-sm text-muted-foreground text-center">
-        Choose how you want to add the widget to your website
+        {t("setup.install_desc")}
       </p>
 
       {!method ? (
@@ -593,7 +590,7 @@ function InstallGuide({ site, onCopy, copied, onDone }: {
       ) : (
         <div className="space-y-4">
           <button onClick={() => setMethod(null)} className="text-xs text-primary hover:underline">
-            ← Choose different method
+            {t("setup.choose_different")}
           </button>
           <ol className="space-y-3">
             {getSteps().map((step, i) => {
@@ -622,8 +619,8 @@ function InstallGuide({ site, onCopy, copied, onDone }: {
 
           {/* Verification */}
           <div className="border-t border-border pt-4 mt-4">
-            <h4 className="font-medium text-foreground text-sm mb-2">Verify Installation</h4>
-            <p className="text-xs text-muted-foreground mb-3">Check if the widget is properly installed on your site</p>
+            <h4 className="font-medium text-foreground text-sm mb-2">{t("setup.verify_title")}</h4>
+            <p className="text-xs text-muted-foreground mb-3">{t("setup.verify_desc")}</p>
             <div className="flex gap-2">
               <input
                 value={verifyUrl}
@@ -636,7 +633,7 @@ function InstallGuide({ site, onCopy, copied, onDone }: {
                 disabled={verifying || !verifyUrl}
                 className="px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
               >
-                {verifying ? "Checking..." : "Verify"}
+                {verifying ? t("setup.checking") : t("setup.verify")}
               </button>
             </div>
             {verifyResult && (
@@ -654,7 +651,7 @@ function InstallGuide({ site, onCopy, copied, onDone }: {
 
       <button onClick={onDone}
         className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-        Go to Dashboard
+        {t("setup.go_dashboard")}
       </button>
     </div>
   );
