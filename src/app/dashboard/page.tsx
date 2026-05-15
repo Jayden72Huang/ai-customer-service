@@ -52,7 +52,7 @@ export default function DashboardPage() {
 function DashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { t } = useSite();
+  const { t, siteId: contextSiteId } = useSite();
   const [stats, setStats] = useState<Stats | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
   const [site, setSite] = useState<Site | null>(null);
@@ -98,6 +98,19 @@ function DashboardContent() {
   useEffect(() => {
     fetchSites();
   }, [fetchSites]);
+
+  useEffect(() => {
+    if (!contextSiteId || sites.length === 0) return;
+    const matched = sites.find((s) => s.id === contextSiteId);
+    if (matched && matched.id !== site?.id) {
+      setSite(matched);
+      setStats(null);
+      fetch(`/api/insights?site_id=${matched.id}`)
+        .then((r) => r.json())
+        .then((d) => setStats(d.stats))
+        .catch(() => {});
+    }
+  }, [contextSiteId, sites, site?.id]);
 
   useEffect(() => {
     if (searchParams.get("setup") === "new") {

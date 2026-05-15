@@ -47,7 +47,7 @@ const filterKeys: Record<string, string> = {
 };
 
 export default function ConversationsPage() {
-  const { t } = useSite();
+  const { t, siteId: contextSiteId } = useSite();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -59,7 +59,7 @@ export default function ConversationsPage() {
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
-    const siteId = typeof window !== "undefined" ? localStorage.getItem("current_site_id") : null;
+    const siteId = contextSiteId || (typeof window !== "undefined" ? localStorage.getItem("current_site_id") : null);
     const params = new URLSearchParams();
     if (siteId) params.set("site_id", siteId);
     if (filter === "needs_human") params.set("needs_human", "true");
@@ -71,10 +71,11 @@ export default function ConversationsPage() {
       setConversations(data.conversations || []);
     }
     setLoading(false);
-  }, [filter]);
+  }, [filter, contextSiteId]);
 
   useEffect(() => {
     fetchConversations();
+    setSelected(null);
   }, [fetchConversations]);
 
   async function selectConversation(conv: Conversation) {

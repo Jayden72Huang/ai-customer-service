@@ -46,7 +46,7 @@ interface KnowledgeDoc {
 }
 
 export default function KnowledgePage() {
-  const { t } = useSite();
+  const { t, siteId: contextSiteId } = useSite();
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -68,21 +68,23 @@ export default function KnowledgePage() {
   const [confirmDeleteDoc, setConfirmDeleteDoc] = useState(false);
 
   const fetchEntries = useCallback(async () => {
-    const res = await fetch(`/api/knowledge?site_id=${getCurrentSiteId()}`);
+    const sid = contextSiteId || getCurrentSiteId();
+    const res = await fetch(`/api/knowledge?site_id=${sid}`);
     if (res.ok) {
       const data = await res.json();
       setEntries(data.entries || []);
     }
-  }, []);
+  }, [contextSiteId]);
 
   const fetchDocs = useCallback(async () => {
-    const res = await fetch(`/api/knowledge/docs?site_id=${getCurrentSiteId()}`);
+    const sid = contextSiteId || getCurrentSiteId();
+    const res = await fetch(`/api/knowledge/docs?site_id=${sid}`);
     if (res.ok) {
       const data = await res.json();
       setDocs(data.documents || []);
       setLatestDoc(data.latest || null);
     }
-  }, []);
+  }, [contextSiteId]);
 
   useEffect(() => {
     fetchEntries();

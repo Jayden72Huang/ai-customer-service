@@ -29,7 +29,7 @@ function getCurrentSiteId() {
 }
 
 export default function SeoPage() {
-  const { membership, t } = useSite();
+  const { membership, t, siteId: contextSiteId } = useSite();
   const [articles, setArticles] = useState<SeoArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -41,17 +41,19 @@ export default function SeoPage() {
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/seo?site_id=${getCurrentSiteId()}`);
+      const siteId = contextSiteId || getCurrentSiteId();
+      const res = await fetch(`/api/seo?site_id=${siteId}`);
       if (res.ok) {
         const data = await res.json();
         setArticles(data.articles || []);
       }
     } catch { /* ignore */ }
     setLoading(false);
-  }, []);
+  }, [contextSiteId]);
 
   useEffect(() => {
     fetchArticles();
+    setSelectedArticle(null);
   }, [fetchArticles]);
 
   async function generateArticle() {
@@ -61,7 +63,7 @@ export default function SeoPage() {
       const res = await fetch("/api/seo/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ site_id: getCurrentSiteId(), days: genDays }),
+        body: JSON.stringify({ site_id: contextSiteId || getCurrentSiteId(), days: genDays }),
       });
       const data = await res.json();
       if (res.ok && data.article) {

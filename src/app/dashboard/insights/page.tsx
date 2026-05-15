@@ -105,7 +105,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 const IMPACT_COLORS = PRIORITY_COLORS;
 
 export default function InsightsPage() {
-  const { t } = useSite();
+  const { t, siteId: contextSiteId } = useSite();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -132,27 +132,31 @@ export default function InsightsPage() {
 
   const fetchInsights = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/insights?site_id=${getCurrentSiteId()}`);
+    const siteId = contextSiteId || getCurrentSiteId();
+    const res = await fetch(`/api/insights?site_id=${siteId}`);
     if (res.ok) {
       const data = await res.json();
       setSuggestions(data.suggestions || []);
       setStats(data.stats);
     }
     setLoading(false);
-  }, []);
+  }, [contextSiteId]);
 
   useEffect(() => {
     fetchInsights();
+    setReport(null);
+    setReportMeta(null);
   }, [fetchInsights]);
 
   async function generateReport() {
     setReportLoading(true);
     setReportError("");
     try {
+      const siteId = contextSiteId || getCurrentSiteId();
       const res = await fetch("/api/insights/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ site_id: getCurrentSiteId(), days: reportDays }),
+        body: JSON.stringify({ site_id: siteId, days: reportDays }),
       });
       const data = await res.json();
       if (res.ok && data.report) {
@@ -173,7 +177,7 @@ export default function InsightsPage() {
     await fetch("/api/insights", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ suggestion_id: id, action, site_id: getCurrentSiteId() }),
+      body: JSON.stringify({ suggestion_id: id, action, site_id: contextSiteId || getCurrentSiteId() }),
     });
     setSuggestions((prev) => prev.filter((s) => s.id !== id));
   }
