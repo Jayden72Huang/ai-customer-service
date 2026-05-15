@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+  <!-- Chat bubble -->
+  <path d="M256 72C148.8 72 64 143.2 64 232c0 40.8 18.4 78 49.6 107.2L88 408l80-44.8c26.4 9.6 56 14.8 88 14.8 107.2 0 192-71.2 192-160S363.2 72 256 72z" fill="url(#g1)" opacity="0.15"/>
+  <path d="M256 72C148.8 72 64 143.2 64 232c0 40.8 18.4 78 49.6 107.2L88 408l80-44.8c26.4 9.6 56 14.8 88 14.8 107.2 0 192-71.2 192-160S363.2 72 256 72z" stroke="url(#g1)" stroke-width="16" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- Neural network nodes -->
+  <circle cx="200" cy="192" r="24" fill="url(#g2)" opacity="0.9"/>
+  <circle cx="312" cy="192" r="24" fill="url(#g2)" opacity="0.9"/>
+  <circle cx="256" cy="288" r="24" fill="url(#g2)" opacity="0.9"/>
+  <!-- Node connections -->
+  <line x1="218" y1="200" x2="294" y2="200" stroke="url(#g2)" stroke-width="6" opacity="0.5" stroke-linecap="round"/>
+  <line x1="208" y1="212" x2="248" y2="272" stroke="url(#g2)" stroke-width="6" opacity="0.5" stroke-linecap="round"/>
+  <line x1="304" y1="212" x2="264" y2="272" stroke="url(#g2)" stroke-width="6" opacity="0.5" stroke-linecap="round"/>
+  <!-- Inner glow on nodes -->
+  <circle cx="200" cy="192" r="10" fill="white" opacity="0.4"/>
+  <circle cx="312" cy="192" r="10" fill="white" opacity="0.4"/>
+  <circle cx="256" cy="288" r="10" fill="white" opacity="0.4"/>
+</svg>

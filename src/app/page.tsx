@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { MessageSquare, Zap, Brain, Shield, Code, Mail, ArrowRight, Globe } from "lucide-react";
 import GradientText from "@/components/GradientText";
 import BorderGlow from "@/components/BorderGlow";
@@ -96,9 +97,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-purple-400" />
-              </div>
+              <Image src="/logo.svg" alt="AI Service" width={32} height={32} className="w-8 h-8" />
               <span className="font-bold text-lg tracking-tight">AI Service</span>
             </Link>
             <span className="text-white/20 font-light">/</span>
@@ -396,7 +395,7 @@ export default function HomePage() {
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-sm text-white/20 font-mono">
           <div className="flex items-center gap-2">
-            <Zap className="w-3.5 h-3.5" />
+            <Image src="/logo.svg" alt="" width={14} height={14} className="w-3.5 h-3.5" />
             <span>{t("landing.footer_name")}</span>
           </div>
           <span>{t("landing.footer_built")}</span>
