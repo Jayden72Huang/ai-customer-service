@@ -28,16 +28,16 @@ export default function HomePage() {
 
   const t = createT(locale);
 
-  const tagRow1 = [t("tag.smart_reply"), t("tag.auto_learn"), t("tag.escalation"), t("tag.multi_lang"), t("tag.context"), t("tag.analytics"), t("tag.knowledge_base"), t("tag.webhooks")];
-  const tagRow2 = [t("tag.email_alert"), t("tag.chat_widget"), t("tag.custom_theme"), t("tag.csv_import"), "DeepSeek", "Claude", t("tag.insights"), t("tag.api")];
+  const tagRow1 = [t("tag.smart_reply"), t("tag.auto_learn"), t("tag.escalation"), t("tag.multi_lang"), t("tag.context"), t("tag.analytics"), t("tag.knowledge_base"), t("tag.seo_articles")];
+  const tagRow2 = [t("tag.email_alert"), t("tag.chat_widget"), t("tag.custom_theme"), t("tag.csv_import"), t("tag.url_crawl"), t("tag.multi_agent"), t("tag.doc_upload"), t("tag.weekly_report")];
 
   const features = [
     { span: "lg:col-span-2", title: t("feat.smart"), desc: t("feat.smart_desc"), preview: "tags" },
-    { title: t("feat.visual"), desc: t("feat.visual_desc"), preview: "icons" },
-    { title: t("feat.organized"), desc: t("feat.organized_desc"), preview: "grid-icons" },
+    { title: t("feat.chat"), desc: t("feat.chat_desc"), preview: "chat" },
+    { title: t("feat.knowledge"), desc: t("feat.knowledge_desc"), preview: "knowledge" },
     { title: t("feat.models"), desc: t("feat.models_desc"), preview: "bars" },
-    { title: t("feat.ai_ready"), desc: t("feat.ai_ready_desc"), preview: "terminal" },
-    { title: t("feat.growing"), desc: t("feat.growing_desc"), preview: "chart" },
+    { title: t("feat.analytics"), desc: t("feat.analytics_desc"), preview: "analytics" },
+    { title: t("feat.seo"), desc: t("feat.seo_desc"), preview: "seo" },
   ] as { span?: string; title: string; desc: string; preview: string }[];
 
   const steps = [
@@ -408,7 +408,7 @@ export default function HomePage() {
 
 /* ───────── Sub-components ───────── */
 
-function FeaturePreview({ type, tagRow1, tagRow2, activeUsers }: { type: string; tagRow1: string[]; tagRow2: string[]; activeUsers: string }) {
+function FeaturePreview({ type, tagRow1, tagRow2 }: { type: string; tagRow1: string[]; tagRow2: string[]; activeUsers: string }) {
   if (type === "tags") {
     return (
       <div className="space-y-3 mask-fade-x">
@@ -430,44 +430,68 @@ function FeaturePreview({ type, tagRow1, tagRow2, activeUsers }: { type: string;
     );
   }
 
-  if (type === "icons") {
+  if (type === "chat") {
     return (
-      <div className="flex items-center gap-4">
-        {[MessageSquare, Brain, Shield].map((Icon, i) => (
-          <div
-            key={i}
-            className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center animate-float"
-            style={{ animationDelay: `${i * 0.4}s` }}
-          >
-            <Icon className="w-5 h-5 text-purple-400/60" />
+      <div className="w-full space-y-2.5">
+        <div className="flex justify-end">
+          <div className="bg-purple-500/20 border border-purple-500/15 rounded-2xl rounded-br-md px-3 py-2 max-w-[75%]">
+            <p className="text-[11px] text-white/50">How do I reset my password?</p>
           </div>
-        ))}
+        </div>
+        <div className="flex justify-start">
+          <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-md px-3 py-2 max-w-[80%]">
+            <p className="text-[11px] text-green-400/60 font-medium mb-0.5">AI</p>
+            <p className="text-[11px] text-white/40">Go to Settings → Security → Reset. A link will be sent to your email.</p>
+          </div>
+        </div>
+        <div className="flex justify-start">
+          <div className="bg-amber-500/10 border border-amber-500/15 rounded-lg px-2.5 py-1.5">
+            <p className="text-[10px] text-amber-400/70 font-mono">↗ escalate to human</p>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (type === "grid-icons") {
-    const icons = [Zap, Shield, Code, Brain, MessageSquare, Mail, ArrowRight, Zap, Code];
+  if (type === "knowledge") {
+    const sources = [
+      { icon: "📄", label: "CSV", color: "border-green-500/20 bg-green-500/5" },
+      { icon: "🔗", label: "URL", color: "border-blue-500/20 bg-blue-500/5" },
+      { icon: "📝", label: "Doc", color: "border-purple-500/20 bg-purple-500/5" },
+      { icon: "📋", label: "Text", color: "border-amber-500/20 bg-amber-500/5" },
+    ];
     return (
-      <div className="grid grid-cols-3 gap-3">
-        {icons.map((Icon, i) => (
-          <div
-            key={i}
-            className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center animate-float"
-            style={{ animationDelay: `${i * 0.2}s` }}
-          >
-            <Icon className="w-4 h-4 text-white/20" />
+      <div className="w-full">
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          {sources.map((s) => (
+            <div key={s.label} className={`flex flex-col items-center gap-1 p-2 rounded-lg border ${s.color}`}>
+              <span className="text-base">{s.icon}</span>
+              <span className="text-[10px] font-mono text-white/40">{s.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-2">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400/60 animate-pulse" />
+            <span className="text-[10px] font-mono text-white/30">AI extracting Q&A pairs...</span>
           </div>
-        ))}
+          <div className="flex gap-1 mt-1.5">
+            {[65, 80, 45, 90, 70].map((w, i) => (
+              <div key={i} className="h-1 rounded-full bg-purple-500/15" style={{ width: `${w}%` }}>
+                <div className="h-full rounded-full bg-purple-500/30 animate-pulse-width" style={{ animationDelay: `${i * 0.3}s` }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (type === "bars") {
     const models = [
-      { name: "DeepSeek", color: "bg-purple-500/40", track: "bg-purple-500/10" },
-      { name: "Claude", color: "bg-green-500/40", track: "bg-green-500/10" },
-      { name: "GPT-4o", color: "bg-amber-500/40", track: "bg-amber-500/10" },
+      { name: "DeepSeek", color: "bg-purple-500/40", track: "bg-purple-500/10", desc: "cost-effective" },
+      { name: "Claude", color: "bg-green-500/40", track: "bg-green-500/10", desc: "high quality" },
+      { name: "GPT-4o", color: "bg-amber-500/40", track: "bg-amber-500/10", desc: "balanced" },
     ];
     return (
       <div className="space-y-3 w-full">
@@ -484,40 +508,49 @@ function FeaturePreview({ type, tagRow1, tagRow2, activeUsers }: { type: string;
     );
   }
 
-  if (type === "terminal") {
+  if (type === "analytics") {
+    const sentiments = [
+      { label: "Positive", pct: 68, color: "bg-green-500/40" },
+      { label: "Neutral", pct: 24, color: "bg-blue-500/30" },
+      { label: "Negative", pct: 8, color: "bg-red-500/30" },
+    ];
     return (
-      <div className="bg-[#0a0a0f] border border-white/[0.06] rounded-lg p-4 w-full">
-        <div className="flex items-center gap-1.5 mb-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-          <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-          <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-          <span className="text-[10px] font-mono text-white/20 ml-2">Editor</span>
+      <div className="w-full">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="text-2xl font-bold text-white/10">92%</div>
+          <div className="text-[10px] font-mono text-green-400/50 leading-tight">AI Resolution<br />Rate</div>
         </div>
-        <div className="font-mono text-xs text-white/40">
-          <span className="text-purple-400">$</span> add a knowledge base
-        </div>
-        <div className="flex gap-1 mt-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-float" style={{ animationDelay: "0s" }} />
-          <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-float" style={{ animationDelay: "0.2s" }} />
-          <div className="w-1.5 h-1.5 rounded-full bg-white/20 animate-float" style={{ animationDelay: "0.4s" }} />
+        <div className="space-y-2">
+          {sentiments.map((s) => (
+            <div key={s.label} className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-white/30 w-14 shrink-0">{s.label}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                <div className={`h-full rounded-full ${s.color}`} style={{ width: `${s.pct}%` }} />
+              </div>
+              <span className="text-[10px] font-mono text-white/20 w-8 text-right">{s.pct}%</span>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  if (type === "chart") {
+  if (type === "seo") {
     return (
       <div className="w-full">
-        <p className="text-xs font-mono text-white/20 mb-2">{activeUsers}</p>
-        <p className="text-4xl font-bold text-white/10 mb-4">2.4K</p>
-        <div className="flex items-end gap-1 h-12">
-          {[3, 4, 3, 5, 6, 5, 7, 8, 7, 9, 8, 10, 9, 11, 12].map((h, i) => (
-            <div
-              key={i}
-              className="flex-1 bg-purple-500/20 rounded-sm animate-grow-bar"
-              style={{ height: `${h * 4}px`, animationDelay: `${i * 0.15}s` }}
-            />
-          ))}
+        <div className="bg-[#0a0a0f] border border-white/[0.06] rounded-lg p-3 mb-2">
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400/60" />
+            <span className="text-[10px] font-mono text-white/20">auto-generated</span>
+          </div>
+          <p className="text-[11px] text-white/50 font-medium leading-snug mb-1">How to Set Up AI Customer Service for Your E-commerce...</p>
+          <p className="text-[10px] text-white/20 leading-snug">Based on 47 customer conversations about setup and integration...</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-1 rounded-full bg-purple-500/10 overflow-hidden">
+            <div className="h-full w-3/4 rounded-full bg-purple-500/30 animate-pulse-width" />
+          </div>
+          <span className="text-[10px] font-mono text-white/20">SEO Score: 87</span>
         </div>
       </div>
     );
